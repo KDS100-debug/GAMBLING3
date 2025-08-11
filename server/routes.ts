@@ -83,9 +83,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Update user balance
-      await storage.updateUserBalance(userId, user.balance + pkg.points);
+      const newBalance = (user.balance || 0) + pkg.points;
+      await storage.updateUserBalance(userId, newBalance);
 
-      res.json({ success: true, transaction, newBalance: user.balance + pkg.points });
+      res.json({ success: true, transaction, newBalance });
     } catch (error) {
       console.error("Error processing top-up:", error);
       res.status(500).json({ message: "Failed to process top-up" });
@@ -140,7 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = await storage.getUser(userId);
-      if (!user || user.balance < betAmount) {
+      if (!user || (user.balance || 0) < betAmount) {
         return res.status(400).json({ message: "Insufficient balance" });
       }
 
@@ -183,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Update user balance and stats
-      const newBalance = user.balance - betAmount + winAmount;
+      const newBalance = (user.balance || 0) - betAmount + winAmount;
       await storage.updateUserBalance(userId, newBalance);
       await storage.updateUserStats(userId, isWin, winAmount);
 
@@ -235,7 +236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const user = await storage.getUser(userId);
-      if (!user || user.balance < betAmount) {
+      if (!user || (user.balance || 0) < betAmount) {
         return res.status(400).json({ message: "Insufficient balance" });
       }
 
@@ -263,7 +264,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Update user balance
-      await storage.updateUserBalance(userId, user.balance - betAmount);
+      const newBalance = (user.balance || 0) - betAmount;
+      await storage.updateUserBalance(userId, newBalance);
 
       // Broadcast bet to all clients
       broadcastToClients({
@@ -275,7 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      res.json({ success: true, bet, newBalance: user.balance - betAmount });
+      res.json({ success: true, bet, newBalance });
     } catch (error) {
       console.error("Error placing aviator bet:", error);
       res.status(500).json({ message: "Failed to place bet" });
@@ -299,7 +301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update bet
       await storage.updateAviatorBet(bet.id, {
-        cashOutAt: currentAviatorRound.multiplier,
+        cashOutAt: currentAviatorRound.multiplier.toString(),
         status: 'cashed_out',
         winAmount,
       });
@@ -315,7 +317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = await storage.getUser(userId);
       if (user) {
-        await storage.updateUserBalance(userId, user.balance + winAmount);
+        await storage.updateUserBalance(userId, (user.balance || 0) + winAmount);
         await storage.updateUserStats(userId, true, winAmount);
       }
 
@@ -412,13 +414,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       crashPoint: parseFloat(crashPoint.toFixed(2)),
     };
 
+    console.log(`Starting new Aviator round ${roundId} with crash point ${currentAviatorRound.crashPoint}x`);
+
     // Save game state to database
     storage.createAviatorGameState({
       roundId,
       status: 'betting',
       multiplier: '1.00',
       crashPoint: crashPoint.toString(),
-    });
+    }).catch(err => console.error('Error saving game state:', err));
 
     // Broadcast betting phase
     broadcastToClients({
@@ -495,7 +499,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           const user = await storage.getUser(bet.userId);
           if (user) {
-            await storage.updateUserBalance(bet.userId, user.balance + winAmount);
+            await storage.updateUserBalance(bet.userId, (user.balance || 0) + winAmount);
             await storage.updateUserStats(bet.userId, true, winAmount);
           }
 
@@ -521,19 +525,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   async function crashAviator() {
-    if (!currentAviatorRound || aviatorInterval) {
+    if (aviatorInterval) {
       clearInterval(aviatorInterval);
       aviatorInterval = null;
     }
 
     if (!currentAviatorRound) return;
 
+    const finalMultiplier = currentAviatorRound.multiplier;
     currentAviatorRound.status = 'crashed';
 
     // Update database
     await storage.updateAviatorGameState(currentAviatorRound.roundId, {
       status: 'crashed',
-      multiplier: currentAviatorRound.multiplier.toString(),
+      multiplier: finalMultiplier.toString(),
       crashTime: new Date(),
     });
 
@@ -554,7 +559,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     broadcastToClients({
       type: 'crashed',
       data: {
-        multiplier: parseFloat(currentAviatorRound.multiplier.toFixed(2)),
+        multiplier: parseFloat(finalMultiplier.toFixed(2)),
         crashPoint: currentAviatorRound.crashPoint,
       }
     });
@@ -565,10 +570,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }, 3000);
   }
 
-  // Start first aviator round
-  setTimeout(() => {
-    startAviatorRound();
-  }, 2000);
+  // Start first aviator round immediately
+  console.log('Starting Aviator game engine...');
+  startAviatorRound();
 
   return httpServer;
 }
