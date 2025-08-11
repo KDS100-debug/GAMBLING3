@@ -1,0 +1,109 @@
+Develop a modern, responsive, and secure web-based gaming platform with the following specifications:
+
+1. Core Platform Features
+User Authentication System:
+
+Secure login, signup, and logout functionality.
+
+Password encryption using bcrypt or equivalent.
+
+Email & username uniqueness validation.
+
+Optional: JWT-based session handling for API security.
+
+User Profile Dashboard:
+
+Display username, avatar, current balance (points/coins), and recent game history.
+
+Ability to edit profile picture and basic account info.
+
+2. Top-Up System
+Points-based Economy:
+
+Users can purchase points via a top-up page.
+
+Payment Gateway Integration (PayPal, Stripe, Razorpay, or mock for testing).
+
+Points are credited instantly upon successful payment.
+
+Transactions stored in a transactions table with ID, userID, amount, payment status, and timestamp.
+
+Top-Up Packages Example:
+
+₹50 → 500 Points
+
+₹100 → 1100 Points (bonus included)
+
+₹200 → 2500 Points (bigger bonus)
+
+3. Game Structure
+Game Lobby Page:
+
+Displays available games with Game 1 and Game 2 as selectable tiles/cards.
+
+Each game shows rules, point cost per play, and potential rewards.
+
+"Play Now" button that deducts points when a game starts.
+
+Game Points Logic:
+
+Before game starts: Check if user has enough points.
+
+Deduct entry fee instantly.
+
+Reward system: Update points based on win/loss outcome.
+
+All transactions logged for transparency.
+
+4. Placeholder for Games
+Game 1: (You will provide separate rules & mechanics later)
+
+Placeholder route: /game1
+
+Points required: Configurable (e.g., 20 points)
+
+Rewards: Configurable based on score or event outcome.
+
+Game 2: (You will provide separate rules & mechanics later)
+
+Placeholder route: /game2
+
+Points required: Configurable (e.g., 30 points)
+
+Rewards: Configurable.
+
+5. Tech Stack
+Frontend: React.js (with Tailwind CSS for styling & responsive design)
+
+Backend: Node.js (Express.js) or Flask/Django (if using Python)
+
+Database: MySQL or MongoDB
+
+Auth: JWT Tokens or Session-based
+
+Payments: Stripe / Razorpay API Integration
+
+6. Security & Performance
+Input validation & sanitization to prevent SQL Injection and XSS attacks.
+
+API rate limiting & CSRF protection.
+
+Optimize for mobile & desktop browsers.
+
+7. Additional Features (Optional but Recommended)
+Leaderboards for each game (daily, weekly, all-time).
+
+Referral system with bonus points for inviting friends.
+
+In-game chat or friends list.
+
+Daily login reward bonus.
+
+This prompt will generate:
+
+Login system
+
+Top-up/point purchase system
+
+Game lobby with hooks for Game 1 & Game 2 (which will be fully developed once you provide their details).
+

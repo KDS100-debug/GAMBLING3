@@ -1,0 +1,73 @@
+Game 2 – Aviator Game
+Category: Real-Time Multiplayer Crash Betting Game
+Tagline: “Cash out before you crash out.”
+
+1. Executive Summary
+A high-stakes, fast-paced, real-time betting experience where players wager on a continuously increasing multiplier tied to a virtual aircraft’s ascent. Strategic timing is everything — cash out too early and miss potential gains; wait too long and risk losing it all when the aircraft “flies away.”
+
+2. Core Gameplay Mechanics
+Betting Phase
+Players select stake amounts before each round.
+
+Support for multiple concurrent bets per player in the same round.
+
+Countdown timer for betting window (~5–8 seconds).
+
+Flight & Multiplier Growth
+Multiplier starts at 1.00x.
+
+Increases in real time (tick rate: ~0.01–0.05 sec).
+
+Growth curve is pseudo-random — can accelerate or slow dynamically.
+
+Cash-Out Mechanism
+Players can cash out at any moment during the flight.
+
+Payout Formula:
+
+ini
+Copy code
+Payout = Stake × Multiplier at Cash-Out
+Crash Event
+At a randomly generated point (via RNG), the plane disappears.
+
+Players who haven’t cashed out lose their stake.
+
+3. Engagement & Retention Drivers
+Driver	Description
+High-Adrenaline Risk	Balances greed vs. caution for emotional engagement.
+Social Play	Live chat, emojis, and visible win boards.
+Rapid Game Cycles	Round resets in ~3–5 seconds after crash.
+Progression Rewards	Streak bonuses, VIP levels, seasonal jackpots.
+
+4. Technical Logic (High-Level)
+RNG Crash Point Generation
+
+Pre-round server generates crash multiplier using cryptographically secure RNG.
+
+Crash distribution designed for a defined house edge.
+
+Server-Side Multiplier Updates
+
+Multiplier incremented on server and streamed to all clients every tick.
+
+Ensures fairness and prevents client-side prediction.
+
+Client Synchronization
+
+Real-time WebSocket connection for zero-latency updates.
+
+Frontend UI displays multiplier in sync with server ticks.
+
+Anti-Fraud Measures
+
+Encrypted communication, RNG verification, and server-authoritative state.
+
+5. Monetization Strategy
+House Edge embedded in multiplier probability curve.
+
+Microtransactions for skins, animations, and UI customizations.
+
+Premium VIP Rewards for frequent players.
+
+Seasonal Leaderboards with prize pools to increase retention.
