@@ -34,6 +34,9 @@ export default function AviatorGame() {
   const [userBet, setUserBet] = useState<any>(null);
   const [livePlayers, setLivePlayers] = useState<LivePlayer[]>([]);
   const [lastMultipliers, setLastMultipliers] = useState<number[]>([2.34, 1.15, 5.67, 1.87, 3.21]);
+  const [planePosition, setPlanePosition] = useState({ x: 0, y: 0 });
+  const [animationSpeed, setAnimationSpeed] = useState(1);
+  const [showCrashEffect, setShowCrashEffect] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -70,6 +73,7 @@ export default function AviatorGame() {
           } : null);
           break;
         case 'crashed':
+          setShowCrashEffect(true);
           setGameState(prev => prev ? {
             ...prev,
             status: 'crashed',
@@ -110,6 +114,32 @@ export default function AviatorGame() {
   useEffect(() => {
     sendMessage({ type: 'join', userId: 'user' });
   }, [sendMessage]);
+
+  // Update plane position and animation speed based on game state
+  useEffect(() => {
+    if (gameState?.status === 'flying' && gameState.multiplier) {
+      const baseX = Math.min(gameState.multiplier * 25, 450); // Horizontal movement
+      const baseY = Math.min(gameState.multiplier * 12, 140); // Vertical movement (upward)
+      const speed = Math.max(1, gameState.multiplier * 0.3); // Animation speed increases with multiplier
+      
+      setPlanePosition({ x: baseX, y: baseY });
+      setAnimationSpeed(speed);
+    } else if (gameState?.status === 'betting') {
+      setPlanePosition({ x: 0, y: 0 });
+      setAnimationSpeed(1);
+      setShowCrashEffect(false);
+    }
+  }, [gameState?.multiplier, gameState?.status]);
+
+  // Reset crash effect after animation
+  useEffect(() => {
+    if (showCrashEffect) {
+      const timer = setTimeout(() => {
+        setShowCrashEffect(false);
+      }, 3000); // Show crash effect for 3 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [showCrashEffect]);
 
   const placeBetMutation = useMutation({
     mutationFn: async () => {
@@ -226,23 +256,154 @@ export default function AviatorGame() {
           <div className="bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-600 rounded-xl p-8 mb-6 relative overflow-hidden min-h-96">
             <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white opacity-10"></div>
             
-            {/* Multiplier Display */}
+            {/* Enhanced Multiplier Display */}
             <div className="text-center mb-8">
-              <div className="text-6xl font-bold text-white mb-2">
-                <span className={gameState?.status === 'flying' ? 'animate-pulse' : ''}>
-                  {gameState?.multiplier?.toFixed(2) || '1.00'}x
-                </span>
+              <div className={`text-6xl font-bold mb-2 transition-all duration-300 ${
+                gameState?.status === 'flying' 
+                  ? `multiplier-glow ${gameState.multiplier > 5 ? 'text-orange-400' : gameState.multiplier > 10 ? 'text-red-400' : 'text-green-400'}`
+                  : gameState?.status === 'crashed'
+                  ? 'text-red-500 scale-95'
+                  : 'text-white'
+              }`}>
+                {gameState?.multiplier?.toFixed(2) || '1.00'}x
               </div>
-              <p className="text-blue-200">Current Multiplier</p>
+              <p className="text-blue-200">
+                {gameState?.status === 'flying' 
+                  ? 'Plane is flying!' 
+                  : gameState?.status === 'crashed' 
+                  ? 'Plane crashed!'
+                  : 'Current Multiplier'
+                }
+              </p>
             </div>
 
-            {/* Plane Animation Area */}
-            <div className="relative h-32 mb-8">
-              <div className={`absolute text-4xl text-white transform rotate-12 transition-all duration-1000 ${
-                gameState?.status === 'flying' ? 'left-1/2' : 'left-8'
-              }`}>
-                ✈️
+            {/* Advanced Plane Animation Area */}
+            <div className="relative h-40 mb-8 overflow-hidden">
+              {/* Dynamic Flight Path Trail */}
+              <div className="absolute inset-0 pointer-events-none">
+                <svg className="w-full h-full" viewBox="0 0 500 160">
+                  {gameState?.status === 'flying' && (
+                    <path
+                      d={`M 0 140 Q ${planePosition.x / 2} ${140 - planePosition.y / 2} ${planePosition.x} ${140 - planePosition.y}`}
+                      stroke="rgba(59, 130, 246, 0.6)"
+                      strokeWidth="2"
+                      fill="none"
+                      strokeDasharray="5,5"
+                      className="animate-pulse"
+                      style={{
+                        strokeDashoffset: `-${gameState.multiplier * 10}px`,
+                        animation: `dash ${2 / animationSpeed}s linear infinite`
+                      }}
+                    />
+                  )}
+                </svg>
               </div>
+              
+              {/* Cloud Effects */}
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-2 right-10 w-8 h-4 bg-white bg-opacity-20 rounded-full animate-pulse"></div>
+                <div className="absolute top-8 right-32 w-6 h-3 bg-white bg-opacity-15 rounded-full animate-pulse delay-300"></div>
+                <div className="absolute top-4 left-20 w-10 h-5 bg-white bg-opacity-10 rounded-full animate-pulse delay-700"></div>
+              </div>
+
+              {/* Animated Plane */}
+              <div 
+                className={`absolute bottom-4 text-4xl text-white transition-all duration-200 ${
+                  gameState?.status === 'crashed' ? 'aviator-crash' : 'aviator-flight'
+                }`}
+                style={{
+                  '--start-x': '8px',
+                  '--start-y': '0px',
+                  '--end-x': `${planePosition.x}px`,
+                  '--end-y': `-${planePosition.y}px`,
+                  '--crash-x': `${planePosition.x}px`,
+                  '--crash-y': `-${planePosition.y}px`,
+                  transform: gameState?.status === 'flying' 
+                    ? `translateX(${planePosition.x}px) translateY(-${planePosition.y}px) rotate(${Math.min(12 + planePosition.y * 0.2, 25)}deg) scale(${Math.min(1 + planePosition.y * 0.01, 1.3)})`
+                    : gameState?.status === 'crashed'
+                    ? `translateX(${planePosition.x + 100}px) translateY(-${planePosition.y - 200}px) rotate(180deg) scale(0.5)`
+                    : 'translateX(8px) translateY(0px) rotate(12deg)',
+                  animationDuration: `${1 / animationSpeed}s`,
+                } as React.CSSProperties}
+              >
+                {gameState?.status === 'crashed' ? '💥' : '✈️'}
+              </div>
+
+              {/* Advanced Crash Effect */}
+              {(gameState?.status === 'crashed' || showCrashEffect) && (
+                <div className="absolute inset-0 pointer-events-none">
+                  {/* Dynamic Smoke Trail based on crash position */}
+                  <div 
+                    className="aviator-smoke absolute w-20 h-20 bg-gray-600 bg-opacity-50 rounded-full"
+                    style={{
+                      left: `${planePosition.x + 50}px`,
+                      bottom: `${Math.max(planePosition.y - 20, 20)}px`,
+                      animationDelay: '0ms'
+                    }}
+                  ></div>
+                  <div 
+                    className="aviator-smoke absolute w-16 h-16 bg-gray-500 bg-opacity-40 rounded-full"
+                    style={{
+                      left: `${planePosition.x + 70}px`,
+                      bottom: `${Math.max(planePosition.y - 10, 30)}px`,
+                      animationDelay: '200ms'
+                    }}
+                  ></div>
+                  <div 
+                    className="aviator-smoke absolute w-12 h-12 bg-gray-400 bg-opacity-30 rounded-full"
+                    style={{
+                      left: `${planePosition.x + 90}px`,
+                      bottom: `${Math.max(planePosition.y, 40)}px`,
+                      animationDelay: '400ms'
+                    }}
+                  ></div>
+                  
+                  {/* Main Explosion Effect */}
+                  <div 
+                    className="aviator-explosion absolute text-8xl"
+                    style={{
+                      left: `${planePosition.x + 40}px`,
+                      bottom: `${Math.max(planePosition.y - 30, 10)}px`,
+                    }}
+                  >💥</div>
+                  
+                  {/* Secondary Fire Effects */}
+                  <div 
+                    className="absolute text-3xl animate-pulse"
+                    style={{
+                      left: `${planePosition.x + 20}px`,
+                      bottom: `${Math.max(planePosition.y - 10, 25)}px`,
+                      animationDelay: '100ms'
+                    }}
+                  >🔥</div>
+                  <div 
+                    className="absolute text-2xl animate-pulse"
+                    style={{
+                      left: `${planePosition.x + 80}px`,
+                      bottom: `${Math.max(planePosition.y + 10, 35)}px`,
+                      animationDelay: '300ms'
+                    }}
+                  >🔥</div>
+
+                  {/* Debris Effects */}
+                  <div 
+                    className="absolute text-lg opacity-70 animate-bounce"
+                    style={{
+                      left: `${planePosition.x - 10}px`,
+                      bottom: `${Math.max(planePosition.y + 20, 50)}px`,
+                      animationDelay: '150ms'
+                    }}
+                  >⚡</div>
+                  <div 
+                    className="absolute text-lg opacity-60 animate-bounce"
+                    style={{
+                      left: `${planePosition.x + 110}px`,
+                      bottom: `${Math.max(planePosition.y - 5, 45)}px`,
+                      animationDelay: '350ms'
+                    }}
+                  >✨</div>
+                </div>
+              )}
             </div>
 
             {/* Game Status */}
@@ -314,14 +475,19 @@ export default function AviatorGame() {
                   )}
                   
                   {canCashOut && (
-                    <Button
-                      onClick={() => cashOutMutation.mutate()}
-                      disabled={cashOutMutation.isPending}
-                      className="w-full bg-gradient-to-r from-secondary to-accent text-white font-semibold py-3"
-                    >
-                      <HandIcon className="w-4 h-4 mr-2" />
-                      {cashOutMutation.isPending ? 'Cashing Out...' : 'Cash Out'}
-                    </Button>
+                    <div className="relative">
+                      <Button
+                        onClick={() => cashOutMutation.mutate()}
+                        disabled={cashOutMutation.isPending}
+                        className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 text-lg shadow-lg transform hover:scale-105 transition-all duration-200 animate-pulse"
+                      >
+                        <HandIcon className="w-5 h-5 mr-2" />
+                        {cashOutMutation.isPending ? 'Cashing Out...' : `Cash Out @ ${gameState?.multiplier.toFixed(2)}x`}
+                      </Button>
+                      <div className="absolute -top-2 -right-2 bg-yellow-400 text-black text-xs font-bold px-2 py-1 rounded-full animate-bounce">
+                        {userBet && gameState ? Math.floor(userBet.betAmount * gameState.multiplier) : 0} pts
+                      </div>
+                    </div>
                   )}
                   
                   {userBet?.status === 'cashed_out' && (
