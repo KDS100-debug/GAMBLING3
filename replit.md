@@ -1,0 +1,79 @@
+# GameHub Pro - Modern Gaming Platform
+
+## Overview
+
+GameHub Pro is a modern, responsive web-based gaming platform that offers real-time multiplayer games with an integrated points-based economy. The platform features user authentication, secure payment processing for point top-ups, and two core games: a Six-Color Challenge and an Aviator crash betting game. Built with a full-stack TypeScript architecture, the application provides a seamless gaming experience with live gameplay, real-time updates via WebSockets, and comprehensive user management.
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.
+
+## System Architecture
+
+### Frontend Architecture
+- **Framework**: React with TypeScript for type safety and modern development patterns
+- **Routing**: Wouter for lightweight client-side routing
+- **UI Components**: Radix UI primitives with shadcn/ui design system for consistent, accessible components
+- **Styling**: Tailwind CSS with CSS variables for theming and responsive design
+- **State Management**: TanStack Query (React Query) for server state management and caching
+- **Real-time Communication**: WebSocket integration for live game updates and multiplayer features
+
+### Backend Architecture
+- **Runtime**: Node.js with Express.js framework for API endpoints
+- **Language**: TypeScript with ES modules for modern JavaScript features
+- **API Design**: RESTful endpoints with WebSocket support for real-time features
+- **Session Management**: Express sessions with PostgreSQL storage for persistent user sessions
+- **Authentication**: Replit Auth integration with OpenID Connect for secure user authentication
+
+### Database Layer
+- **Database**: PostgreSQL for reliable data persistence
+- **ORM**: Drizzle ORM with Neon serverless database integration
+- **Schema Management**: Type-safe schema definitions with Zod validation
+- **Connection Pool**: Neon serverless connection pooling for optimal performance
+
+### Game Systems
+- **Six-Color Challenge**: Probability-based color matching game with tiered betting system
+- **Aviator Game**: Real-time multiplayer crash betting game with live multiplier mechanics
+- **Points Economy**: Integrated virtual currency system with secure transaction tracking
+- **Real-time Updates**: WebSocket-based live game state synchronization across all connected clients
+
+### Security and Authentication
+- **User Authentication**: OpenID Connect with Replit Auth for secure login flows
+- **Session Security**: HTTP-only cookies with secure session storage
+- **Password Security**: bcrypt hashing for sensitive data protection
+- **CSRF Protection**: Built-in session-based protection against cross-site request forgery
+
+### Development and Build System
+- **Build Tool**: Vite for fast development and optimized production builds
+- **Development Server**: Hot module replacement with Vite middleware integration
+- **TypeScript**: Strict type checking across frontend, backend, and shared schemas
+- **Code Organization**: Monorepo structure with shared types and utilities
+
+## External Dependencies
+
+### Database and Storage
+- **Neon Database**: Serverless PostgreSQL hosting with connection pooling
+- **Drizzle Kit**: Database migration and schema management tools
+
+### Authentication Services
+- **Replit Auth**: OpenID Connect provider for user authentication and identity management
+
+### Real-time Communication
+- **WebSocket (ws)**: Native WebSocket implementation for real-time game updates and multiplayer features
+
+### UI and Design System
+- **Radix UI**: Accessible component primitives for form controls, dialogs, and interactive elements
+- **Lucide React**: Consistent icon library for UI elements
+- **Tailwind CSS**: Utility-first CSS framework with PostCSS processing
+
+### Development Tools
+- **Replit Integration**: Development environment integration with Cartographer and runtime error handling
+- **ESBuild**: Fast bundling for production server builds
+- **TypeScript Compiler**: Type checking and compilation for the entire codebase
+
+### Form and Validation
+- **React Hook Form**: Performant form handling with minimal re-renders
+- **Zod**: Runtime type validation and schema parsing for API endpoints and database operations
+
+### Payment Processing
+- The architecture supports integration with payment gateways (PayPal, Stripe, Razorpay) for the points top-up system, with transaction tracking and status management built into the database schema.
