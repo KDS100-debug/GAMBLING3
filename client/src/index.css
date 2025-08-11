@@ -201,6 +201,108 @@
       transform: scale(1.05);
     }
   }
+
+  .plane-takeoff {
+    animation: planeTakeoff 2s ease-out forwards;
+  }
+
+  .plane-ascent {
+    animation: planeAscent 3s linear forwards;
+  }
+
+  .plane-speed {
+    animation: planeSpeed 5s ease-in forwards;
+  }
+
+  .plane-warning {
+    animation: planeWarning 4s ease-in-out forwards;
+  }
+
+  .plane-crash {
+    animation: planeCrash 2s ease-in forwards;
+  }
+
+  @keyframes planeTakeoff {
+    0% { 
+      transform: translateX(0px) translateY(0px) rotate(12deg) scale(1);
+      filter: blur(0px);
+    }
+    100% { 
+      transform: translateX(100px) translateY(-50px) rotate(15deg) scale(1.1);
+      filter: blur(1px);
+    }
+  }
+
+  @keyframes planeAscent {
+    0% { 
+      transform: translateX(100px) translateY(-50px) rotate(15deg) scale(1.1);
+      filter: blur(1px);
+    }
+    100% { 
+      transform: translateX(250px) translateY(-130px) rotate(18deg) scale(1.15);
+      filter: blur(1.5px);
+    }
+  }
+
+  @keyframes planeSpeed {
+    0% { 
+      transform: translateX(250px) translateY(-130px) rotate(18deg) scale(1.15);
+      filter: blur(1.5px);
+    }
+    100% { 
+      transform: translateX(400px) translateY(-190px) rotate(22deg) scale(1.25);
+      filter: blur(2px);
+    }
+  }
+
+  @keyframes planeWarning {
+    0% { 
+      transform: translateX(400px) translateY(-190px) rotate(22deg) scale(1.25);
+      filter: blur(2px);
+    }
+    50% {
+      transform: translateX(450px) translateY(-210px) rotate(25deg) scale(1.3);
+      filter: blur(2.5px) hue-rotate(30deg);
+    }
+    100% { 
+      transform: translateX(480px) translateY(-220px) rotate(28deg) scale(1.35);
+      filter: blur(3px) hue-rotate(60deg);
+    }
+  }
+
+  @keyframes planeCrash {
+    0% { 
+      transform: translateX(480px) translateY(-220px) rotate(28deg) scale(1.35);
+      opacity: 1;
+    }
+    30% {
+      transform: translateX(500px) translateY(-200px) rotate(90deg) scale(1.5);
+      opacity: 0.8;
+    }
+    100% { 
+      transform: translateX(600px) translateY(-50px) rotate(180deg) scale(0.3);
+      opacity: 0;
+    }
+  }
+
+  .vapor-trail {
+    animation: vaporTrail 1s ease-out infinite;
+  }
+
+  @keyframes vaporTrail {
+    0% {
+      opacity: 0.8;
+      transform: scale(1) translateX(0);
+    }
+    50% {
+      opacity: 0.4;
+      transform: scale(1.5) translateX(-20px);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(2) translateX(-40px);
+    }
+  }
   
   .slide-in {
     animation: slideIn 0.3s ease-out;

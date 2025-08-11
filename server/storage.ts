@@ -44,6 +44,7 @@ export interface IStorage {
   updateAviatorBet(id: string, updates: Partial<AviatorBet>): Promise<void>;
   getAviatorBetsForRound(roundId: string): Promise<AviatorBet[]>;
   getUserAviatorBet(userId: string, roundId: string): Promise<AviatorBet | undefined>;
+  getUserAviatorBets(userId: string, limit?: number): Promise<AviatorBet[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -190,6 +191,15 @@ export class DatabaseStorage implements IStorage {
       .from(aviatorBets)
       .where(and(eq(aviatorBets.userId, userId), eq(aviatorBets.roundId, roundId)));
     return bet;
+  }
+
+  async getUserAviatorBets(userId: string, limit: number = 10): Promise<AviatorBet[]> {
+    return await db
+      .select()
+      .from(aviatorBets)
+      .where(eq(aviatorBets.userId, userId))
+      .orderBy(desc(aviatorBets.createdAt))
+      .limit(limit);
   }
 }
 

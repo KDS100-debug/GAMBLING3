@@ -338,6 +338,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/aviator/take-winnings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Get the most recent cashed out bet for the user
+      const recentBets = await storage.getUserAviatorBets(userId, 5); // Get last 5 bets
+      const cashedOutBet = recentBets.find(bet => bet.status === 'cashed_out' && bet.winAmount > 0);
+      
+      if (!cashedOutBet) {
+        return res.status(400).json({ message: "No winnings to collect" });
+      }
+
+      res.json({ 
+        success: true, 
+        winnings: cashedOutBet.winAmount,
+        betAmount: cashedOutBet.betAmount,
+        multiplier: parseFloat(cashedOutBet.cashOutAt || '0')
+      });
+    } catch (error) {
+      console.error("Error taking winnings:", error);
+      res.status(500).json({ message: "Failed to collect winnings" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // WebSocket setup for Aviator game

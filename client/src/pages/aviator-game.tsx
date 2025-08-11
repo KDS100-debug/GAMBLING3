@@ -37,6 +37,9 @@ export default function AviatorGame() {
   const [planePosition, setPlanePosition] = useState({ x: 0, y: 0 });
   const [animationSpeed, setAnimationSpeed] = useState(1);
   const [showCrashEffect, setShowCrashEffect] = useState(false);
+  const [animationPhase, setAnimationPhase] = useState<'takeoff' | 'ascent' | 'speed' | 'warning' | 'crash'>('takeoff');
+  const [flightTime, setFlightTime] = useState(0);
+  const [showWarning, setShowWarning] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -65,6 +68,9 @@ export default function AviatorGame() {
             status: 'flying',
             startTime: data.data.startTime,
           } : null);
+          setFlightTime(0);
+          setAnimationPhase('takeoff');
+          setShowWarning(false);
           break;
         case 'multiplier_update':
           setGameState(prev => prev ? {
@@ -74,6 +80,7 @@ export default function AviatorGame() {
           break;
         case 'crashed':
           setShowCrashEffect(true);
+          setAnimationPhase('crash');
           setGameState(prev => prev ? {
             ...prev,
             status: 'crashed',
@@ -98,7 +105,7 @@ export default function AviatorGame() {
               title: "Successful Cash Out!",
               description: `You won ${data.data.winAmount} points at ${data.data.multiplier.toFixed(2)}x`,
             });
-            setUserBet(prev => prev ? {
+            setUserBet((prev: any) => prev ? {
               ...prev,
               status: 'cashed_out',
               cashOutAt: data.data.multiplier,
@@ -115,12 +122,70 @@ export default function AviatorGame() {
     sendMessage({ type: 'join', userId: 'user' });
   }, [sendMessage]);
 
-  // Update plane position and animation speed based on game state
+  // Flight time tracking and animation phase management
+  useEffect(() => {
+    if (gameState?.status === 'flying') {
+      const interval = setInterval(() => {
+        setFlightTime((prev: number) => {
+          const newTime = prev + 0.1;
+          
+          // Animation phase transitions based on time (frames converted to seconds)
+          if (newTime <= 2) {
+            setAnimationPhase('takeoff');
+          } else if (newTime <= 5) {
+            setAnimationPhase('ascent');
+          } else if (newTime <= 10) {
+            setAnimationPhase('speed');
+          } else if (newTime <= 14) {
+            setAnimationPhase('warning');
+            setShowWarning(true);
+          }
+          
+          return newTime;
+        });
+      }, 100);
+      
+      return () => clearInterval(interval);
+    }
+  }, [gameState?.status]);
+
+  // Update plane position and animation based on current phase and multiplier
   useEffect(() => {
     if (gameState?.status === 'flying' && gameState.multiplier) {
-      const baseX = Math.min(gameState.multiplier * 25, 450); // Horizontal movement
-      const baseY = Math.min(gameState.multiplier * 12, 140); // Vertical movement (upward)
-      const speed = Math.max(1, gameState.multiplier * 0.3); // Animation speed increases with multiplier
+      let baseX, baseY, speed;
+      
+      switch (animationPhase) {
+        case 'takeoff':
+          // Initial takeoff - smooth acceleration with slight upward curve
+          baseX = Math.min(gameState.multiplier * 15, 100);
+          baseY = Math.min(gameState.multiplier * 8, 50);
+          speed = 1 + (gameState.multiplier - 1) * 0.2;
+          break;
+        case 'ascent':
+          // Steady diagonal ascent
+          baseX = 100 + Math.min((gameState.multiplier - 1) * 20, 150);
+          baseY = 50 + Math.min((gameState.multiplier - 1) * 15, 80);
+          speed = 1.5 + (gameState.multiplier - 1) * 0.3;
+          break;
+        case 'speed':
+          // Steeper ascent with increased speed
+          baseX = 250 + Math.min((gameState.multiplier - 2.5) * 25, 150);
+          baseY = 130 + Math.min((gameState.multiplier - 2.5) * 20, 60);
+          speed = 2 + (gameState.multiplier - 1) * 0.4;
+          break;
+        case 'warning':
+          // Pre-crash jitter and instability
+          const jitterX = Math.sin(flightTime * 20) * 3;
+          const jitterY = Math.cos(flightTime * 15) * 2;
+          baseX = 400 + Math.min((gameState.multiplier - 5) * 15, 80) + jitterX;
+          baseY = 190 + Math.min((gameState.multiplier - 5) * 10, 30) + jitterY;
+          speed = 2.5 + (gameState.multiplier - 1) * 0.5;
+          break;
+        default:
+          baseX = Math.min(gameState.multiplier * 25, 450);
+          baseY = Math.min(gameState.multiplier * 12, 140);
+          speed = Math.max(1, gameState.multiplier * 0.3);
+      }
       
       setPlanePosition({ x: baseX, y: baseY });
       setAnimationSpeed(speed);
@@ -128,8 +193,11 @@ export default function AviatorGame() {
       setPlanePosition({ x: 0, y: 0 });
       setAnimationSpeed(1);
       setShowCrashEffect(false);
+      setShowWarning(false);
+      setFlightTime(0);
+      setAnimationPhase('takeoff');
     }
-  }, [gameState?.multiplier, gameState?.status]);
+  }, [gameState?.multiplier, gameState?.status, animationPhase, flightTime]);
 
   // Reset crash effect after animation
   useEffect(() => {
@@ -186,7 +254,7 @@ export default function AviatorGame() {
       return response.json();
     },
     onSuccess: (data) => {
-      setUserBet(prev => prev ? {
+      setUserBet((prev: any) => prev ? {
         ...prev,
         status: 'cashed_out',
         cashOutAt: data.multiplier,
@@ -218,6 +286,39 @@ export default function AviatorGame() {
     },
   });
 
+  const takeWinningsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', '/api/aviator/take-winnings');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Winnings Collected!",
+        description: `Successfully collected ${data.winnings} points`,
+      });
+      setUserBet(null);
+      queryClient.invalidateQueries({ queryKey: ['/api/balance'] });
+    },
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Failed to Collect",
+        description: error.message || "Failed to collect winnings",
+        variant: "destructive",
+      });
+    },
+  });
+
   const getStatusText = () => {
     if (!gameState) return "Connecting...";
     switch (gameState.status) {
@@ -234,6 +335,7 @@ export default function AviatorGame() {
 
   const canPlaceBet = gameState?.status === 'betting' && !userBet;
   const canCashOut = gameState?.status === 'flying' && userBet?.status === 'active';
+  const canTakeWinnings = userBet?.status === 'cashed_out' && userBet?.winAmount > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-dark via-surface to-dark">
@@ -256,25 +358,49 @@ export default function AviatorGame() {
           <div className="bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-600 rounded-xl p-8 mb-6 relative overflow-hidden min-h-96">
             <div className="absolute inset-0 bg-gradient-to-t from-transparent to-white opacity-10"></div>
             
-            {/* Enhanced Multiplier Display */}
-            <div className="text-center mb-8">
+            {/* Enhanced Multiplier Display with Warning System */}
+            <div className="text-center mb-8 relative">
+              {/* Pre-crash warning indicators */}
+              {showWarning && animationPhase === 'warning' && (
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="animate-pulse text-red-500 font-bold text-lg absolute -top-8 left-1/2 transform -translate-x-1/2">
+                    ⚠️ WARNING - CASH OUT NOW! ⚠️
+                  </div>
+                  <div className="absolute inset-0 border-2 border-red-500 rounded-lg animate-ping opacity-75"></div>
+                </div>
+              )}
+              
               <div className={`text-6xl font-bold mb-2 transition-all duration-300 ${
                 gameState?.status === 'flying' 
-                  ? `multiplier-glow ${gameState.multiplier > 5 ? 'text-orange-400' : gameState.multiplier > 10 ? 'text-red-400' : 'text-green-400'}`
+                  ? `multiplier-glow ${
+                      animationPhase === 'warning' ? 'text-red-600 animate-bounce' :
+                      gameState.multiplier > 10 ? 'text-red-400' : 
+                      gameState.multiplier > 5 ? 'text-orange-400' : 
+                      'text-green-400'
+                    }`
                   : gameState?.status === 'crashed'
                   ? 'text-red-500 scale-95'
                   : 'text-white'
               }`}>
                 {gameState?.multiplier?.toFixed(2) || '1.00'}x
               </div>
+              
               <p className="text-blue-200">
-                {gameState?.status === 'flying' 
-                  ? 'Plane is flying!' 
-                  : gameState?.status === 'crashed' 
-                  ? 'Plane crashed!'
-                  : 'Current Multiplier'
+                {animationPhase === 'takeoff' && gameState?.status === 'flying' ? '🛫 Taking off...' :
+                 animationPhase === 'ascent' && gameState?.status === 'flying' ? '✈️ Steady climb...' :
+                 animationPhase === 'speed' && gameState?.status === 'flying' ? '🚀 Accelerating...' :
+                 animationPhase === 'warning' && gameState?.status === 'flying' ? '💥 DANGER ZONE!' :
+                 gameState?.status === 'crashed' ? 'Plane crashed!' :
+                 'Current Multiplier'
                 }
               </p>
+              
+              {/* Flight Time Display */}
+              {gameState?.status === 'flying' && (
+                <div className="text-sm text-gray-400 mt-1">
+                  Flight time: {flightTime.toFixed(1)}s
+                </div>
+              )}
             </div>
 
             {/* Advanced Plane Animation Area */}
@@ -306,28 +432,59 @@ export default function AviatorGame() {
                 <div className="absolute top-4 left-20 w-10 h-5 bg-white bg-opacity-10 rounded-full animate-pulse delay-700"></div>
               </div>
 
-              {/* Animated Plane */}
+              {/* Enhanced Animated Plane with Phase-based Animation */}
               <div 
-                className={`absolute bottom-4 text-4xl text-white transition-all duration-200 ${
-                  gameState?.status === 'crashed' ? 'aviator-crash' : 'aviator-flight'
+                className={`absolute bottom-4 text-4xl text-white ${
+                  animationPhase === 'takeoff' ? 'plane-takeoff' :
+                  animationPhase === 'ascent' ? 'plane-ascent' :
+                  animationPhase === 'speed' ? 'plane-speed' :
+                  animationPhase === 'warning' ? 'plane-warning' :
+                  animationPhase === 'crash' ? 'plane-crash' :
+                  'transition-all duration-500'
                 }`}
                 style={{
-                  '--start-x': '8px',
-                  '--start-y': '0px',
-                  '--end-x': `${planePosition.x}px`,
-                  '--end-y': `-${planePosition.y}px`,
-                  '--crash-x': `${planePosition.x}px`,
-                  '--crash-y': `-${planePosition.y}px`,
                   transform: gameState?.status === 'flying' 
                     ? `translateX(${planePosition.x}px) translateY(-${planePosition.y}px) rotate(${Math.min(12 + planePosition.y * 0.2, 25)}deg) scale(${Math.min(1 + planePosition.y * 0.01, 1.3)})`
                     : gameState?.status === 'crashed'
                     ? `translateX(${planePosition.x + 100}px) translateY(-${planePosition.y - 200}px) rotate(180deg) scale(0.5)`
                     : 'translateX(8px) translateY(0px) rotate(12deg)',
-                  animationDuration: `${1 / animationSpeed}s`,
+                  filter: animationPhase === 'warning' ? 'hue-rotate(45deg) saturate(1.5)' : 'none',
                 } as React.CSSProperties}
               >
                 {gameState?.status === 'crashed' ? '💥' : '✈️'}
               </div>
+
+              {/* Enhanced Vapor Trails */}
+              {gameState?.status === 'flying' && (
+                <div className="absolute inset-0 pointer-events-none">
+                  <div 
+                    className="vapor-trail absolute w-3 h-8 bg-white bg-opacity-30 rounded-full"
+                    style={{
+                      left: `${planePosition.x - 20}px`,
+                      bottom: `${Math.max(planePosition.y - 15, 30)}px`,
+                      animationDelay: '0ms'
+                    }}
+                  ></div>
+                  <div 
+                    className="vapor-trail absolute w-2 h-6 bg-white bg-opacity-20 rounded-full"
+                    style={{
+                      left: `${planePosition.x - 35}px`,
+                      bottom: `${Math.max(planePosition.y - 10, 35)}px`,
+                      animationDelay: '200ms'
+                    }}
+                  ></div>
+                  {animationPhase === 'speed' || animationPhase === 'warning' ? (
+                    <div 
+                      className="vapor-trail absolute w-1 h-4 bg-white bg-opacity-15 rounded-full"
+                      style={{
+                        left: `${planePosition.x - 50}px`,
+                        bottom: `${Math.max(planePosition.y - 5, 40)}px`,
+                        animationDelay: '400ms'
+                      }}
+                    ></div>
+                  ) : null}
+                </div>
+              )}
 
               {/* Advanced Crash Effect */}
               {(gameState?.status === 'crashed' || showCrashEffect) && (
@@ -488,6 +645,17 @@ export default function AviatorGame() {
                         {userBet && gameState ? Math.floor(userBet.betAmount * gameState.multiplier) : 0} pts
                       </div>
                     </div>
+                  )}
+
+                  {canTakeWinnings && (
+                    <Button
+                      onClick={() => takeWinningsMutation.mutate()}
+                      disabled={takeWinningsMutation.isPending}
+                      className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-bold py-4 text-lg shadow-lg transform hover:scale-105 transition-all duration-200"
+                    >
+                      <HandIcon className="w-5 h-5 mr-2" />
+                      {takeWinningsMutation.isPending ? 'Collecting...' : `Take Winnings (${userBet?.winAmount} pts)`}
+                    </Button>
                   )}
                   
                   {userBet?.status === 'cashed_out' && (
