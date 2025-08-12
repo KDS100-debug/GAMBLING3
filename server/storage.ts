@@ -4,6 +4,7 @@ import {
   gameRounds,
   aviatorGameState,
   aviatorBets,
+  otpCodes,
   type User,
   type UpsertUser,
   type InsertTransaction,
@@ -14,13 +15,17 @@ import {
   type AviatorGameState,
   type InsertAviatorBet,
   type AviatorBet,
+  type InsertOtpCode,
+  type OtpCode,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
-  // User operations (mandatory for Replit Auth)
+  // User operations (supports both Replit Auth and OTP Auth)
   getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByPhone(phone: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   
   // Balance operations
@@ -51,6 +56,16 @@ export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async getUserByPhone(phone: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.phone, phone));
     return user;
   }
 
@@ -131,8 +146,8 @@ export class DatabaseStorage implements IStorage {
     await db
       .update(users)
       .set({
-        gamesPlayed: user.gamesPlayed + 1,
-        totalWinnings: won ? user.totalWinnings + winAmount : user.totalWinnings,
+        gamesPlayed: (user.gamesPlayed || 0) + 1,
+        totalWinnings: won ? (user.totalWinnings || 0) + winAmount : (user.totalWinnings || 0),
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId));

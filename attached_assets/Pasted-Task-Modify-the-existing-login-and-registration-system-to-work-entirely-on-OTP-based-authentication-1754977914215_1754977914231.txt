@@ -1,0 +1,96 @@
+Task: Modify the existing login and registration system to work entirely on OTP-based authentication, without passwords. Allow users to register or log in using either Gmail or phone number. Also implement an OTP-based “Forget Account Access” recovery system.
+
+1. UI Requirements
+Minimal, modern, and fast: Keep a casino/game-friendly dark background with neon highlights (green for verified, red for errors, yellow for pending actions).
+
+One-step entry field: User chooses Phone or Gmail and enters the value in a single input field.
+
+Large “Send OTP” button with loading animation when sending.
+
+Display OTP entry screen with:
+
+Six separate input boxes for digits (auto-focus jumps to the next box).
+
+Countdown timer (2 minutes).
+
+“Resend OTP” button (enabled after 30 seconds).
+
+Show total active users in real-time above the form for social proof.
+
+2. Registration / Login Flow
+Step 1: Enter Gmail or Phone
+
+Validate input:
+
+Email format check (@gmail.com).
+
+Phone format check (with country code).
+
+Step 2: Send OTP
+
+Generate a 6-digit numeric OTP, valid for 2 minutes.
+
+Send via:
+
+Gmail → SMTP / SendGrid / AWS SES / Firebase Email.
+
+SMS → Twilio / Nexmo / Firebase SMS.
+
+Store OTP in DB (with expiry and used status).
+
+Step 3: OTP Verification
+
+User enters OTP.
+
+Backend checks OTP against DB, verifies expiry & usage.
+
+If OTP valid:
+
+New user → Create account and save phone/email.
+
+Existing user → Fetch and log in.
+
+If OTP invalid → Show error and allow retry.
+
+Step 4: Login Success
+
+Issue a JWT token or session ID for authentication.
+
+Redirect user to the main game/lobby.
+
+3. Forget Account Access Flow
+User enters Gmail or Phone.
+
+Send OTP (same as login flow).
+
+After verification, simply log the user in — no password reset needed.
+
+4. Backend Logic & Security
+APIs Required:
+
+/send-otp → Accept Gmail/Phone, generate OTP, send via email/SMS, store in DB with timestamp.
+
+/verify-otp → Accept Gmail/Phone + OTP, verify, log in or register.
+
+Security Features:
+
+OTP expires in 2 minutes.
+
+Max 3 wrong OTP attempts per session.
+
+Block excessive OTP requests from the same IP/user (rate limiting).
+
+Use HTTPS for all requests.
+
+JWT tokens for session management.
+
+5. Extra Features
+Auto-detect country code from IP for phone login.
+
+Option to switch between Gmail & Phone login in the same screen.
+
+Add small animation when OTP verification is successful (e.g., green checkmark).
+
+Show “Last Login” after successful authentication.
+
+Goal: Make the login/registration system super fast, frictionless, and password-free so players can join in seconds by just verifying an OTP. Keep the design real-time, responsive, and secure to match a high-speed game like Aviator.

@@ -3,8 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { GamepadIcon, CoinsIcon, TrophyIcon, UsersIcon } from "lucide-react";
 
 export default function Landing() {
-  const handleLogin = () => {
+  const handleReplitLogin = () => {
     window.location.href = "/api/login";
+  };
+
+  const handleOtpLogin = () => {
+    window.location.href = "/otp-login";
   };
 
   return (
@@ -22,13 +26,23 @@ export default function Landing() {
               Experience the thrill of premium gaming with our cutting-edge platform. 
               Play, win, and compete with players worldwide.
             </p>
-            <Button 
-              onClick={handleLogin} 
-              size="lg" 
-              className="bg-gradient-to-r from-primary to-secondary text-white text-lg px-8 py-6 rounded-xl hover:opacity-90 transition-opacity"
-            >
-              Start Gaming Now
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button 
+                onClick={handleOtpLogin} 
+                size="lg" 
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-lg px-8 py-6 rounded-xl transition-all duration-200 transform hover:scale-[1.02]"
+              >
+                Login with Email/Phone
+              </Button>
+              <Button 
+                onClick={handleReplitLogin} 
+                variant="outline"
+                size="lg" 
+                className="border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white text-lg px-8 py-6 rounded-xl transition-all duration-200"
+              >
+                Continue with Replit
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -105,7 +119,7 @@ export default function Landing() {
             Join GameHub Pro today and experience the future of online gaming
           </p>
           <Button 
-            onClick={handleLogin} 
+            onClick={handleOtpLogin} 
             size="lg" 
             variant="secondary"
             className="bg-white text-primary text-lg px-8 py-6 rounded-xl hover:bg-gray-100 transition-colors"

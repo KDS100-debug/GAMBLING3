@@ -24,18 +24,33 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table (mandatory for Replit Auth)
+// User storage table (now OTP-based)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique(),
+  phone: varchar("phone").unique(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   balance: integer("balance").default(0),
   totalWinnings: integer("total_winnings").default(0),
   gamesPlayed: integer("games_played").default(0),
+  lastLoginAt: timestamp("last_login_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// OTP storage for authentication
+export const otpCodes = pgTable("otp_codes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  identifier: varchar("identifier").notNull(), // email or phone
+  identifierType: varchar("identifier_type").notNull(), // 'email' or 'phone'
+  otp: varchar("otp").notNull(),
+  attempts: integer("attempts").default(0),
+  used: boolean("used").default(false),
+  ipAddress: varchar("ip_address"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Transactions table for top-ups and game transactions
@@ -90,6 +105,8 @@ export const aviatorBets = pgTable("aviator_bets", {
 
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+export type InsertOtpCode = typeof otpCodes.$inferInsert;
+export type OtpCode = typeof otpCodes.$inferSelect;
 export type InsertTransaction = typeof transactions.$inferInsert;
 export type Transaction = typeof transactions.$inferSelect;
 export type InsertGameRound = typeof gameRounds.$inferInsert;
@@ -113,3 +130,23 @@ export const insertAviatorBetSchema = createInsertSchema(aviatorBets).omit({
   id: true,
   createdAt: true,
 });
+
+export const insertOtpCodeSchema = createInsertSchema(otpCodes).omit({
+  id: true,
+  createdAt: true,
+});
+
+// OTP Authentication Schemas
+export const sendOtpSchema = z.object({
+  identifier: z.string().min(1, "Email or phone is required"),
+  type: z.enum(["email", "phone"]),
+});
+
+export const verifyOtpSchema = z.object({
+  identifier: z.string().min(1, "Email or phone is required"),
+  otp: z.string().length(6, "OTP must be 6 digits"),
+  type: z.enum(["email", "phone"]),
+});
+
+export type SendOtpRequest = z.infer<typeof sendOtpSchema>;
+export type VerifyOtpRequest = z.infer<typeof verifyOtpSchema>;

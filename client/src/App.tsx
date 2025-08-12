@@ -10,6 +10,7 @@ import Games from "@/pages/games";
 import TopUp from "@/pages/topup";
 import ColorGame from "@/pages/color-game";
 import AviatorGame from "@/pages/aviator-game";
+import OtpLogin from "@/pages/otp-login";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -17,6 +18,7 @@ function Router() {
 
   return (
     <Switch>
+      <Route path="/otp-login" component={OtpLogin} />
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (

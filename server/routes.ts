@@ -3,8 +3,10 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertTransactionSchema, insertGameRoundSchema, insertAviatorBetSchema } from "@shared/schema";
+import { insertTransactionSchema, insertGameRoundSchema, insertAviatorBetSchema, sendOtpSchema, verifyOtpSchema } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { otpService } from "./otpService";
+import jwt from "jsonwebtoken";
 
 interface ExtendedWebSocket extends WebSocket {
   userId?: string;
@@ -22,15 +24,111 @@ let currentAviatorRound: {
 let aviatorInterval: NodeJS.Timeout | null = null;
 const connectedClients = new Set<ExtendedWebSocket>();
 
+// JWT Secret for OTP authentication (in production, use environment variable)
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// OTP Auth middleware for JWT tokens
+const otpAuthenticated = (req: any, res: any, next: any) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+  if (!token) {
+    return res.status(401).json({ message: 'Access token required' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    req.user = { id: decoded.userId, email: decoded.email, phone: decoded.phone };
+    next();
+  } catch (error) {
+    return res.status(403).json({ message: 'Invalid or expired token' });
+  }
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
+  // Legacy Replit Auth setup (keeping for backwards compatibility)
   await setupAuth(app);
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // OTP Authentication endpoints
+  app.post('/api/auth/send-otp', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const validatedData = sendOtpSchema.parse(req.body);
+      const clientIp = req.ip || req.connection.remoteAddress || '127.0.0.1';
+      
+      const result = await otpService.sendOtp(
+        validatedData.identifier,
+        validatedData.type,
+        clientIp
+      );
+
+      res.status(result.success ? 200 : 400).json(result);
+    } catch (error: any) {
+      console.error('Send OTP error:', error);
+      res.status(400).json({ 
+        success: false, 
+        message: error.message || 'Invalid request data' 
+      });
+    }
+  });
+
+  app.post('/api/auth/verify-otp', async (req, res) => {
+    try {
+      const validatedData = verifyOtpSchema.parse(req.body);
+      
+      const result = await otpService.verifyOtp(
+        validatedData.identifier,
+        validatedData.otp,
+        validatedData.type
+      );
+
+      if (result.success && result.user) {
+        // Generate JWT token
+        const token = jwt.sign(
+          { 
+            userId: result.user.id, 
+            email: result.user.email, 
+            phone: result.user.phone 
+          },
+          JWT_SECRET,
+          { expiresIn: '7d' } // Token valid for 7 days
+        );
+
+        res.json({
+          ...result,
+          token,
+          user: result.user
+        });
+      } else {
+        res.status(400).json(result);
+      }
+    } catch (error: any) {
+      console.error('Verify OTP error:', error);
+      res.status(400).json({ 
+        success: false, 
+        message: error.message || 'Invalid request data' 
+      });
+    }
+  });
+
+  // User info endpoint (supports both auth methods)
+  app.get('/api/auth/user', (req: any, res: any, next: any) => {
+    // Try OTP auth first, fallback to Replit auth
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      return otpAuthenticated(req, res, next);
+    } else {
+      return isAuthenticated(req, res, next);
+    }
+  }, async (req: any, res) => {
+    try {
+      // Handle both auth types
+      const userId = req.user.id || req.user.claims?.sub;
       const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -38,10 +136,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Balance routes
-  app.get('/api/balance', isAuthenticated, async (req: any, res) => {
+  // Balance routes (support both auth methods)
+  app.get('/api/balance', (req: any, res: any, next: any) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      return otpAuthenticated(req, res, next);
+    } else {
+      return isAuthenticated(req, res, next);
+    }
+  }, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const balance = await storage.getUserBalance(userId);
       res.json({ balance });
     } catch (error) {
@@ -50,10 +155,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Top-up routes
-  app.post('/api/topup', isAuthenticated, async (req: any, res) => {
+  // Top-up routes (support both auth methods)
+  app.post('/api/topup', (req: any, res: any, next: any) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      return otpAuthenticated(req, res, next);
+    } else {
+      return isAuthenticated(req, res, next);
+    }
+  }, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const { amount, package: packageType } = req.body;
 
       // Validate package
@@ -94,9 +206,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Game history routes
-  app.get('/api/game-history', isAuthenticated, async (req: any, res) => {
+  app.get('/api/game-history', (req: any, res: any, next: any) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      return otpAuthenticated(req, res, next);
+    } else {
+      return isAuthenticated(req, res, next);
+    }
+  }, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id || req.user.claims?.sub;
       const gameHistory = await storage.getUserGameHistory(userId, 20);
       res.json(gameHistory);
     } catch (error) {
