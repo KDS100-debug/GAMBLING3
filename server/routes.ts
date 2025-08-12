@@ -344,7 +344,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get the most recent cashed out bet for the user
       const recentBets = await storage.getUserAviatorBets(userId, 5); // Get last 5 bets
-      const cashedOutBet = recentBets.find(bet => bet.status === 'cashed_out' && bet.winAmount > 0);
+      const cashedOutBet = recentBets.find(bet => bet.status === 'cashed_out' && (bet.winAmount || 0) > 0);
       
       if (!cashedOutBet) {
         return res.status(400).json({ message: "No winnings to collect" });
