@@ -100,6 +100,7 @@ export const aviatorBets = pgTable("aviator_bets", {
   cashOutAt: decimal("cash_out_at", { precision: 10, scale: 2 }),
   status: varchar("status").default('active'), // 'active', 'cashed_out', 'crashed'
   winAmount: integer("win_amount").default(0),
+  isNextRoundBet: boolean("is_next_round_bet").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

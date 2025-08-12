@@ -344,10 +344,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/aviator/place-bet', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { betAmount, autoCashOut } = req.body;
+      const { betAmount, autoCashOut, isNextRound } = req.body;
 
-      if (!currentAviatorRound || currentAviatorRound.status !== 'betting') {
-        return res.status(400).json({ message: "No active betting round" });
+      if (!currentAviatorRound) {
+        return res.status(400).json({ message: "No active game" });
+      }
+
+      // Allow betting during betting phase OR as next round bet during flying/crashed
+      const canBetCurrentRound = currentAviatorRound.status === 'betting';
+      const canBetNextRound = currentAviatorRound.status === 'flying' || currentAviatorRound.status === 'crashed';
+      
+      if (!canBetCurrentRound && !isNextRound) {
+        return res.status(400).json({ message: "Betting closed for current round. Try betting for next round!" });
+      }
+
+      if (isNextRound && !canBetNextRound) {
+        return res.status(400).json({ message: "Next round betting not available yet" });
       }
 
       if (betAmount < 10 || betAmount > 1000) {
@@ -359,18 +371,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Insufficient balance" });
       }
 
-      // Check if user already has a bet in this round
-      const existingBet = await storage.getUserAviatorBet(userId, currentAviatorRound.roundId);
+      // Check if user already has a bet for the current round or next round
+      const targetRoundId = isNextRound ? 'NEXT_ROUND' : currentAviatorRound.roundId;
+      const existingBet = await storage.getUserAviatorBet(userId, targetRoundId);
       if (existingBet) {
-        return res.status(400).json({ message: "Already placed bet in this round" });
+        return res.status(400).json({ message: `Already placed bet for ${isNextRound ? 'next' : 'current'} round` });
       }
 
       // Create aviator bet
       const bet = await storage.createAviatorBet({
         userId,
-        roundId: currentAviatorRound.roundId,
+        roundId: targetRoundId,
         betAmount,
         autoCashOut: autoCashOut || null,
+        isNextRoundBet: isNextRound || false,
       });
 
       // Create bet transaction
@@ -379,7 +393,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: 'game_bet',
         amount: -betAmount,
         gameType: 'aviator',
-        gameRoundId: currentAviatorRound.roundId,
+        gameRoundId: targetRoundId,
       });
 
       // Update user balance
@@ -388,11 +402,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Broadcast bet to all clients
       broadcastToClients({
-        type: 'bet_placed',
+        type: isNextRound ? 'next_bet_placed' : 'bet_placed',
         data: {
           userId,
           betAmount,
           autoCashOut,
+          isNextRound,
         }
       });
 
@@ -559,6 +574,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     console.log(`Starting new Aviator round ${roundId} with crash point ${currentAviatorRound.crashPoint}x`);
 
+    // Process next round bets - convert them to current round bets
+    processNextRoundBets(roundId).catch(err => console.error('Error processing next round bets:', err));
+
     // Save game state to database
     storage.createAviatorGameState({
       roundId,
@@ -582,6 +600,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startFlying();
       }
     }, 5000);
+  }
+
+  async function processNextRoundBets(newRoundId: string) {
+    try {
+      // Get all next round bets
+      const nextRoundBets = await storage.getAviatorBetsForRound('NEXT_ROUND');
+      
+      for (const bet of nextRoundBets) {
+        // Update the bet to use the new round ID and mark as active for current round
+        await storage.updateAviatorBet(bet.id, {
+          roundId: newRoundId,
+          isNextRoundBet: false,
+        });
+
+        // Broadcast that this next round bet is now active
+        broadcastToClients({
+          type: 'next_bet_activated',
+          data: {
+            userId: bet.userId,
+            betAmount: bet.betAmount,
+            autoCashOut: bet.autoCashOut,
+            roundId: newRoundId,
+          }
+        });
+      }
+
+      if (nextRoundBets.length > 0) {
+        console.log(`Processed ${nextRoundBets.length} next round bets for round ${newRoundId}`);
+      }
+    } catch (error) {
+      console.error('Error processing next round bets:', error);
+    }
   }
 
   function startFlying() {

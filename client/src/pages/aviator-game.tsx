@@ -32,6 +32,7 @@ export default function AviatorGame() {
   const [betAmount, setBetAmount] = useState(50);
   const [autoCashOut, setAutoCashOut] = useState<string>("");
   const [userBet, setUserBet] = useState<any>(null);
+  const [nextRoundBet, setNextRoundBet] = useState<any>(null);
   const [livePlayers, setLivePlayers] = useState<LivePlayer[]>([]);
   const [lastMultipliers, setLastMultipliers] = useState<number[]>([2.34, 1.15, 5.67, 1.87, 3.21]);
   const [planePosition, setPlanePosition] = useState({ x: 0, y: 0 });
@@ -68,6 +69,33 @@ export default function AviatorGame() {
             multiplier: 1.00,
           });
           setUserBet(null);
+          break;
+        case 'next_bet_placed':
+          if (data.data.userId === 'user') {
+            setNextRoundBet({
+              betAmount: data.data.betAmount,
+              autoCashOut: data.data.autoCashOut,
+              status: 'waiting',
+            });
+            toast({
+              title: "Next Round Bet Placed!",
+              description: `${data.data.betAmount} points bet placed for next round`,
+            });
+          }
+          break;
+        case 'next_bet_activated':
+          if (data.data.userId === 'user') {
+            setUserBet({
+              betAmount: data.data.betAmount,
+              autoCashOut: data.data.autoCashOut,
+              status: 'active',
+            });
+            setNextRoundBet(null);
+            toast({
+              title: "Next Round Bet Activated!",
+              description: `Your ${data.data.betAmount} points bet is now active`,
+            });
+          }
           break;
         case 'flying_started':
           setGameState(prev => prev ? {
@@ -235,22 +263,34 @@ export default function AviatorGame() {
   }, [showCrashEffect]);
 
   const placeBetMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (isNextRound = false) => {
       const response = await apiRequest('POST', '/api/aviator/place-bet', {
         betAmount,
         autoCashOut: autoCashOut ? parseFloat(autoCashOut) : null,
+        isNextRound,
       });
-      return response.json();
+      return { data: await response.json(), isNextRound };
     },
-    onSuccess: (data) => {
-      setUserBet({
-        ...data.bet,
-        status: 'active',
-      });
-      toast({
-        title: "Bet Placed!",
-        description: `${betAmount} points bet placed successfully`,
-      });
+    onSuccess: ({ data, isNextRound }) => {
+      if (isNextRound) {
+        setNextRoundBet({
+          ...data.bet,
+          status: 'waiting',
+        });
+        toast({
+          title: "Next Round Bet Placed!",
+          description: `${betAmount} points bet placed for next round`,
+        });
+      } else {
+        setUserBet({
+          ...data.bet,
+          status: 'active',
+        });
+        toast({
+          title: "Bet Placed!",
+          description: `${betAmount} points bet placed successfully`,
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['/api/balance'] });
     },
     onError: (error) => {
@@ -359,6 +399,7 @@ export default function AviatorGame() {
   };
 
   const canPlaceBet = gameState?.status === 'betting' && !userBet;
+  const canPlaceNextBet = (gameState?.status === 'flying' || gameState?.status === 'crashed') && !nextRoundBet && !userBet;
   const canCashOut = gameState?.status === 'flying' && userBet?.status === 'active';
   const canTakeWinnings = userBet?.status === 'cashed_out' && userBet?.winAmount > 0;
 
@@ -644,15 +685,39 @@ export default function AviatorGame() {
                   </div>
                 </div>
 
+                {/* Next Round Bet Status */}
+                {nextRoundBet && (
+                  <div className="p-3 bg-purple-900/50 border border-purple-500/50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-purple-200 font-medium">Next Round Bet:</span>
+                      <span className="text-purple-400 font-bold">{nextRoundBet.betAmount} pts</span>
+                    </div>
+                    <div className="text-purple-300 text-sm mt-1">
+                      Waiting for next round to start...
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-3">
                   {canPlaceBet && (
                     <Button
-                      onClick={() => placeBetMutation.mutate()}
+                      onClick={() => placeBetMutation.mutate(false)}
                       disabled={placeBetMutation.isPending || betAmount < 10}
                       className="w-full bg-gradient-to-r from-accent to-primary text-white font-semibold py-3"
                     >
                       <NotebookPen className="w-4 h-4 mr-2" />
                       {placeBetMutation.isPending ? 'Placing Bet...' : 'Place Bet'}
+                    </Button>
+                  )}
+
+                  {canPlaceNextBet && (
+                    <Button
+                      onClick={() => placeBetMutation.mutate(true)}
+                      disabled={placeBetMutation.isPending || betAmount < 10}
+                      className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold py-3"
+                    >
+                      <NotebookPen className="w-4 h-4 mr-2" />
+                      {placeBetMutation.isPending ? 'Placing Next Bet...' : 'Bet Next Round'}
                     </Button>
                   )}
                   
