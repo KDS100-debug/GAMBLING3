@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameHub Pro - Modern Gaming Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: '#6366F1',
+                        secondary: '#8B5CF6',
+                        accent: '#10B981',
+                        dark: '#0F172A',
+                        surface: '#1E293B',
+                        'surface-light': '#334155',
+                        muted: '#64748B',
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        .glassmorphism {
+            backdrop-filter: blur(10px);
+            background: rgba(30, 41, 59, 0.8);
+        }
+        
+        .game-color-1 { background: linear-gradient(135deg, #FF6B6B, #FF8E8E); }
+        .game-color-2 { background: linear-gradient(135deg, #4ECDC4, #7BDAD6); }
+        .game-color-3 { background: linear-gradient(135deg, #45B7D1, #73C5E3); }
+        .game-color-4 { background: linear-gradient(135deg, #96CEB4, #B4E0C4); }
+        .game-color-5 { background: linear-gradient(135deg, #FECA57, #FFD662); }
+        .game-color-6 { background: linear-gradient(135deg, #FF9FF3, #F368E0); }
+        
+        .aviator-plane {
+            animation: fly 8s linear infinite;
+        }
+        
+        @keyframes fly {
+            0% { transform: translateX(-100px) translateY(50px) rotate(-10deg); }
+            100% { transform: translateX(calc(100vw + 100px)) translateY(-200px) rotate(15deg); }
+        }
+        
+        .multiplier-animation {
+            animation: pulse 0.5s ease-in-out infinite alternate;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+        
+        .color-selected {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 3px #6366F1;
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-dark font-inter text-gray-100 min-h-screen">
+    
+    <!-- @COMPONENT: Navigation -->
+    <nav class="bg-surface border-b border-surface-light sticky top-0 z-50 glassmorphism">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-4">
+                    <div class="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                        🎮 GameHub Pro
+                    </div>
+                </div>
+                
+                <div class="hidden md:flex items-center space-x-6">
+                    <button class="text-gray-300 hover:text-white transition-colors" data-view="dashboard">
+                        <i class="fas fa-home mr-2"></i>Dashboard
+                    </button>
+                    <button class="text-gray-300 hover:text-white transition-colors" data-view="games">
+                        <i class="fas fa-gamepad mr-2"></i>Games
+                    </button>
+                    <button class="text-gray-300 hover:text-white transition-colors" data-view="topup">
+                        <i class="fas fa-wallet mr-2"></i>Top Up
+                    </button>
+                </div>
+                
+                <!-- @COMPONENT: UserProfile -->
+                <div class="flex items-center space-x-4">
+                    <div class="bg-surface rounded-lg px-3 py-2 flex items-center space-x-2">
+                        <i class="fas fa-coins text-accent"></i>
+                        <span class="text-white font-semibold" data-bind="user.balance">1,250</span>
+                        <span class="text-gray-400 text-sm">Points</span>
+                    </div>
+                    <!-- Profile image is not guaranteed to be square, using object-fit: cover -->
+                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=100&h=100" 
+                         alt="User Avatar" 
+                         class="w-10 h-10 rounded-full border-2 border-primary cursor-pointer hover:border-secondary transition-colors"
+                         style="object-fit: cover;" 
+                         data-bind="user.avatar" />
+                </div>
+                
+                <!-- Mobile menu button -->
+                <div class="md:hidden">
+                    <button class="text-gray-400 hover:text-white">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <!-- @END_COMPONENT: Navigation -->
+
+    <!-- @COMPONENT: MainContent -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- @COMPONENT: Dashboard View -->
+        <div id="dashboard-view" class="view-section">
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold mb-2">Welcome back, <span data-bind="user.username" class="text-primary">Player</span>! 🎮</h1>
+                <p class="text-gray-400">Ready to test your luck and skills?</p>
+            </div>
+            
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-surface rounded-xl p-6 border border-surface-light">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-400 text-sm">Current Balance</p>
+                            <p class="text-2xl font-bold text-accent" data-bind="user.balance">1,250</p>
+                        </div>
+                        <i class="fas fa-wallet text-3xl text-accent opacity-60"></i>
+                    </div>
+                </div>
+                
+                <div class="bg-surface rounded-xl p-6 border border-surface-light">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-400 text-sm">Games Played</p>
+                            <p class="text-2xl font-bold text-primary" data-bind="user.gamesPlayed">47</p>
+                        </div>
+                        <i class="fas fa-gamepad text-3xl text-primary opacity-60"></i>
+                    </div>
+                </div>
+                
+                <div class="bg-surface rounded-xl p-6 border border-surface-light">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-400 text-sm">Total Winnings</p>
+                            <p class="text-2xl font-bold text-secondary" data-bind="user.totalWinnings">3,420</p>
+                        </div>
+                        <i class="fas fa-trophy text-3xl text-secondary opacity-60"></i>
+                    </div>
+                </div>
+                
+                <div class="bg-surface rounded-xl p-6 border border-surface-light">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-400 text-sm">Win Rate</p>
+                            <p class="text-2xl font-bold text-white" data-bind="user.winRate">68%</p>
+                        </div>
+                        <i class="fas fa-chart-line text-3xl text-white opacity-60"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Games -->
+            <div class="bg-surface rounded-xl p-6 border border-surface-light mb-8">
+                <h3 class="text-xl font-semibold mb-4">Recent Activity</h3>
+                <div class="space-y-3">
+                    <!-- @MAP: recentGames.map(game => ( -->
+                    <div class="flex items-center justify-between py-3 border-b border-surface-light last:border-b-0" data-mock="true">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
+                                <i class="fas fa-palette text-white"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Six-Color Challenge</p>
+                                <p class="text-sm text-gray-400">2 minutes ago</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-semibold text-accent">+40 Points</p>
+                            <p class="text-xs text-gray-400">Win</p>
+                        </div>
+                    </div>
+                    <!-- @END_MAP )) -->
+                    
+                    <div class="flex items-center justify-between py-3 border-b border-surface-light last:border-b-0" data-mock="true">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-gradient-to-br from-secondary to-primary rounded-lg flex items-center justify-center">
+                                <i class="fas fa-plane text-white"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Aviator</p>
+                                <p class="text-sm text-gray-400">5 minutes ago</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-semibold text-red-400">-30 Points</p>
+                            <p class="text-xs text-gray-400">Loss</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between py-3" data-mock="true">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-gradient-to-br from-accent to-primary rounded-lg flex items-center justify-center">
+                                <i class="fas fa-palette text-white"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium">Six-Color Challenge</p>
+                                <p class="text-sm text-gray-400">12 minutes ago</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="font-semibold text-accent">+60 Points</p>
+                            <p class="text-xs text-gray-400">Win</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: Dashboard View -->
+        
+        <!-- @COMPONENT: Games View -->
+        <div id="games-view" class="view-section hidden">
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold mb-2">Game Lobby 🎯</h1>
+                <p class="text-gray-400">Choose your game and test your luck!</p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Game 1: Six-Color Challenge -->
+                <!-- @COMPONENT: GameCard -->
+                <div class="bg-surface rounded-xl border border-surface-light overflow-hidden hover:border-primary transition-colors duration-300">
+                    <!-- Game preview with colorful gradient background -->
+                    <div class="h-48 bg-gradient-to-br from-primary via-secondary to-accent p-6 relative overflow-hidden">
+                        <div class="absolute top-4 right-4 bg-black bg-opacity-50 rounded-full px-3 py-1 text-sm font-semibold">
+                            Live
+                        </div>
+                        <!-- Sample color circles for preview -->
+                        <div class="flex flex-wrap gap-2 mt-8">
+                            <div class="w-12 h-12 rounded-full game-color-1 shadow-lg"></div>
+                            <div class="w-12 h-12 rounded-full game-color-2 shadow-lg"></div>
+                            <div class="w-12 h-12 rounded-full game-color-3 shadow-lg"></div>
+                            <div class="w-12 h-12 rounded-full game-color-4 shadow-lg"></div>
+                            <div class="w-12 h-12 rounded-full game-color-5 shadow-lg"></div>
+                            <div class="w-12 h-12 rounded-full game-color-6 shadow-lg"></div>
+                        </div>
+                        <h3 class="text-2xl font-bold text-white mt-4">Six-Color Challenge</h3>
+                    </div>
+                    
+                    <div class="p-6">
+                        <p class="text-gray-400 mb-4">Pick up to 3 colors and win if the random color matches your selection!</p>
+                        
+                        <div class="space-y-3 mb-6">
+                            <div class="flex justify-between items-center text-sm">
+                                <span>1 Color:</span>
+                                <span class="text-accent font-semibold">20 → 40 Points</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm">
+                                <span>2 Colors:</span>
+                                <span class="text-accent font-semibold">30 → 60 Points</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm">
+                                <span>3 Colors:</span>
+                                <span class="text-accent font-semibold">45 → 90 Points</span>
+                            </div>
+                        </div>
+                        
+                        <button class="w-full bg-gradient-to-r from-primary to-secondary text-white font-semibold py-3 px-4 rounded-lg hover:opacity-90 transition-opacity" 
+                                data-view="color-game">
+                            <i class="fas fa-play mr-2"></i>Play Now
+                        </button>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: GameCard -->
+                
+                <!-- Game 2: Aviator -->
+                <div class="bg-surface rounded-xl border border-surface-light overflow-hidden hover:border-secondary transition-colors duration-300">
+                    <!-- Game preview with sky gradient -->
+                    <div class="h-48 bg-gradient-to-br from-blue-900 via-blue-700 to-cyan-500 p-6 relative overflow-hidden">
+                        <div class="absolute top-4 right-4 bg-black bg-opacity-50 rounded-full px-3 py-1 text-sm font-semibold">
+                            Live
+                        </div>
+                        <!-- Animated plane -->
+                        <div class="absolute bottom-8 left-8">
+                            <i class="fas fa-plane text-4xl text-white opacity-80 transform rotate-12"></i>
+                        </div>
+                        <div class="absolute top-8 right-16 text-3xl font-bold text-white">
+                            <span class="multiplier-animation">2.45x</span>
+                        </div>
+                        <h3 class="text-2xl font-bold text-white mt-16">Aviator</h3>
+                        <p class="text-blue-200 text-sm">Cash out before you crash out!</p>
+                    </div>
+                    
+                    <div class="p-6">
+                        <p class="text-gray-400 mb-4">Watch the multiplier rise and cash out before the plane flies away!</p>
+                        
+                        <div class="space-y-3 mb-6">
+                            <div class="flex justify-between items-center text-sm">
+                                <span>Min Bet:</span>
+                                <span class="text-secondary font-semibold">10 Points</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm">
+                                <span>Max Multiplier:</span>
+                                <span class="text-secondary font-semibold">∞</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm">
+                                <span>House Edge:</span>
+                                <span class="text-secondary font-semibold">3%</span>
+                            </div>
+                        </div>
+                        
+                        <button class="w-full bg-gradient-to-r from-secondary to-primary text-white font-semibold py-3 px-4 rounded-lg hover:opacity-90 transition-opacity"
+                                data-view="aviator-game">
+                            <i class="fas fa-plane mr-2"></i>Take Flight
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: Games View -->
+        
+        <!-- @COMPONENT: Top Up View -->
+        <div id="topup-view" class="view-section hidden">
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold mb-2">Top Up Points 💳</h1>
+                <p class="text-gray-400">Add more points to continue playing!</p>
+            </div>
+            
+            <div class="max-w-4xl">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Top-up packages -->
+                    <div class="bg-surface rounded-xl p-6 border border-surface-light hover:border-primary transition-colors">
+                        <div class="text-center">
+                            <div class="bg-primary bg-opacity-20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-coins text-2xl text-primary"></i>
+                            </div>
+                            <h3 class="text-xl font-bold mb-2">Starter Pack</h3>
+                            <p class="text-3xl font-bold text-primary mb-2">₹50</p>
+                            <p class="text-gray-400 mb-4">500 Points</p>
+                            <button class="w-full bg-primary text-white font-semibold py-3 px-4 rounded-lg hover:bg-opacity-90 transition-opacity" data-event="click:handlePayment" data-implementation="Should integrate with payment gateway">
+                                Purchase
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-surface rounded-xl p-6 border border-accent hover:border-accent transition-colors relative">
+                        <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-accent text-white text-xs font-bold px-3 py-1 rounded-full">
+                            POPULAR
+                        </div>
+                        <div class="text-center">
+                            <div class="bg-accent bg-opacity-20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-gem text-2xl text-accent"></i>
+                            </div>
+                            <h3 class="text-xl font-bold mb-2">Value Pack</h3>
+                            <p class="text-3xl font-bold text-accent mb-2">₹100</p>
+                            <p class="text-gray-400 mb-2">1,100 Points</p>
+                            <p class="text-xs text-accent mb-4">+100 Bonus Points</p>
+                            <button class="w-full bg-accent text-white font-semibold py-3 px-4 rounded-lg hover:bg-opacity-90 transition-opacity" data-event="click:handlePayment" data-implementation="Should integrate with payment gateway">
+                                Purchase
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-surface rounded-xl p-6 border border-surface-light hover:border-secondary transition-colors">
+                        <div class="text-center">
+                            <div class="bg-secondary bg-opacity-20 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-crown text-2xl text-secondary"></i>
+                            </div>
+                            <h3 class="text-xl font-bold mb-2">Premium Pack</h3>
+                            <p class="text-3xl font-bold text-secondary mb-2">₹200</p>
+                            <p class="text-gray-400 mb-2">2,500 Points</p>
+                            <p class="text-xs text-secondary mb-4">+300 Bonus Points</p>
+                            <button class="w-full bg-secondary text-white font-semibold py-3 px-4 rounded-lg hover:bg-opacity-90 transition-opacity" data-event="click:handlePayment" data-implementation="Should integrate with payment gateway">
+                                Purchase
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Payment Methods -->
+                <div class="bg-surface rounded-xl p-6 border border-surface-light mt-8">
+                    <h3 class="text-xl font-semibold mb-4">Payment Methods</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="flex items-center justify-center p-4 bg-surface-light rounded-lg">
+                            <i class="fab fa-cc-visa text-2xl text-blue-500"></i>
+                            <span class="ml-2 font-medium">Visa</span>
+                        </div>
+                        <div class="flex items-center justify-center p-4 bg-surface-light rounded-lg">
+                            <i class="fab fa-cc-mastercard text-2xl text-red-500"></i>
+                            <span class="ml-2 font-medium">Mastercard</span>
+                        </div>
+                        <div class="flex items-center justify-center p-4 bg-surface-light rounded-lg">
+                            <i class="fab fa-paypal text-2xl text-blue-600"></i>
+                            <span class="ml-2 font-medium">PayPal</span>
+                        </div>
+                        <div class="flex items-center justify-center p-4 bg-surface-light rounded-lg">
+                            <i class="fas fa-university text-2xl text-green-500"></i>
+                            <span class="ml-2 font-medium">UPI</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: Top Up View -->
+        
+        <!-- @COMPONENT: Color Game View -->
+        <div id="color-game-view" class="view-section hidden">
+            <div class="mb-8">
+                <button class="text-gray-400 hover:text-white transition-colors mb-4" data-view="games">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Games
+                </button>
+                <h1 class="text-3xl font-bold mb-2">Six-Color Challenge 🎨</h1>
+                <p class="text-gray-400">Pick up to 3 colors and win big!</p>
+            </div>
+            
+            <div class="max-w-4xl">
+                <!-- Game Status -->
+                <div class="bg-surface rounded-xl p-6 border border-surface-light mb-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <p class="text-gray-400">Round Status</p>
+                            <p class="text-xl font-bold text-primary" id="game-status">Select Colors</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-gray-400">Your Balance</p>
+                            <p class="text-xl font-bold text-accent" data-bind="user.balance">1,250 Points</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Bet Info -->
+                    <div class="bg-surface-light rounded-lg p-4 mb-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-400">Colors Selected: <span id="selected-count" class="text-white font-semibold">0</span>/3</p>
+                                <p class="text-gray-400">Entry Price: <span id="entry-price" class="text-white font-semibold">0 Points</span></p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-gray-400">Potential Win:</p>
+                                <p class="text-2xl font-bold text-accent" id="potential-win">0 Points</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Color Selection Grid -->
+                <div class="bg-surface rounded-xl p-6 border border-surface-light mb-6">
+                    <h3 class="text-xl font-semibold mb-6 text-center">Choose Your Colors</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-6 max-w-2xl mx-auto">
+                        <!-- Color selection buttons -->
+                        <button class="w-24 h-24 rounded-full game-color-1 hover:scale-110 transition-transform shadow-lg color-btn" data-color="1"></button>
+                        <button class="w-24 h-24 rounded-full game-color-2 hover:scale-110 transition-transform shadow-lg color-btn" data-color="2"></button>
+                        <button class="w-24 h-24 rounded-full game-color-3 hover:scale-110 transition-transform shadow-lg color-btn" data-color="3"></button>
+                        <button class="w-24 h-24 rounded-full game-color-4 hover:scale-110 transition-transform shadow-lg color-btn" data-color="4"></button>
+                        <button class="w-24 h-24 rounded-full game-color-5 hover:scale-110 transition-transform shadow-lg color-btn" data-color="5"></button>
+                        <button class="w-24 h-24 rounded-full game-color-6 hover:scale-110 transition-transform shadow-lg color-btn" data-color="6"></button>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex gap-4 justify-center mb-6">
+                    <button id="clear-btn" class="bg-surface-light text-white font-semibold py-3 px-6 rounded-lg hover:bg-surface transition-colors border border-surface-light">
+                        <i class="fas fa-undo mr-2"></i>Clear Selection
+                    </button>
+                    <button id="play-btn" class="bg-gradient-to-r from-primary to-secondary text-white font-semibold py-3 px-8 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i class="fas fa-play mr-2"></i>Play Round
+                    </button>
+                </div>
+                
+                <!-- Results Area -->
+                <div id="results-area" class="bg-surface rounded-xl p-6 border border-surface-light hidden">
+                    <h3 class="text-xl font-semibold mb-4 text-center">Round Result</h3>
+                    <div class="text-center mb-6">
+                        <p class="text-gray-400 mb-2">Winning Color:</p>
+                        <div id="winning-color" class="w-20 h-20 rounded-full mx-auto shadow-lg"></div>
+                    </div>
+                    <div class="text-center">
+                        <div id="result-message" class="text-2xl font-bold mb-4"></div>
+                        <button id="play-again-btn" class="bg-gradient-to-r from-primary to-secondary text-white font-semibold py-3 px-8 rounded-lg hover:opacity-90 transition-opacity">
+                            <i class="fas fa-redo mr-2"></i>Play Again
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: Color Game View -->
+        
+        <!-- @COMPONENT: Aviator Game View -->
+        <div id="aviator-game-view" class="view-section hidden">
+            <div class="mb-8">
+                <button class="text-gray-400 hover:text-white transition-colors mb-4" data-view="games">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Games
+                </button>
+                <h1 class="text-3xl font-bold mb-2">Aviator ✈️</h1>
+                <p class="text-gray-400">Cash out before you crash out!</p>
+            </div>
+            
+            <div class="max-w-6xl">
+                <!-- Game Area -->
+                <div class="bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-600 rounded-xl p-8 mb-6 relative overflow-hidden min-h-96">
+                    <!-- Sky effect -->
+                    <div class="absolute inset-0 bg-gradient-to-t from-transparent to-white opacity-10"></div>
+                    
+                    <!-- Multiplier Display -->
+                    <div class="text-center mb-8">
+                        <div class="text-6xl font-bold text-white mb-2" id="multiplier-display">
+                            <span class="multiplier-animation">1.00x</span>
+                        </div>
+                        <p class="text-blue-200">Current Multiplier</p>
+                    </div>
+                    
+                    <!-- Plane Animation Area -->
+                    <div class="relative h-32 mb-8">
+                        <div id="aviator-plane" class="absolute">
+                            <i class="fas fa-plane text-4xl text-white transform rotate-12"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Game Status -->
+                    <div class="text-center">
+                        <div id="aviator-status" class="text-xl font-semibold text-white mb-4">Place your bet!</div>
+                        <div id="aviator-timer" class="text-lg text-blue-200"></div>
+                    </div>
+                </div>
+                
+                <!-- Control Panel -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Betting Panel -->
+                    <div class="bg-surface rounded-xl p-6 border border-surface-light">
+                        <h3 class="text-xl font-semibold mb-4">Place Your Bet</h3>
+                        
+                        <div class="space-y-4 mb-6">
+                            <div>
+                                <label class="block text-gray-400 text-sm mb-2">Bet Amount</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" id="bet-amount" class="flex-1 bg-surface-light border border-surface-light rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none" placeholder="Enter bet amount" min="10" max="500" value="50">
+                                    <span class="text-gray-400">Points</span>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-gray-400 text-sm mb-2">Auto Cash Out (Optional)</label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="number" id="auto-cashout" class="flex-1 bg-surface-light border border-surface-light rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none" placeholder="e.g. 2.00" step="0.01" min="1.01">
+                                    <span class="text-gray-400">x</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <button id="bet-btn" class="w-full bg-gradient-to-r from-accent to-primary text-white font-semibold py-3 px-4 rounded-lg hover:opacity-90 transition-opacity">
+                                <i class="fas fa-paper-plane mr-2"></i>Place Bet
+                            </button>
+                            <button id="cashout-btn" class="w-full bg-gradient-to-r from-secondary to-accent text-white font-semibold py-3 px-4 rounded-lg hover:opacity-90 transition-opacity hidden">
+                                <i class="fas fa-hand-paper mr-2"></i>Cash Out
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Statistics Panel -->
+                    <div class="bg-surface rounded-xl p-6 border border-surface-light">
+                        <h3 class="text-xl font-semibold mb-4">Game Statistics</h3>
+                        
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-400">Current Bet:</span>
+                                <span class="text-white font-semibold" id="current-bet-display">0 Points</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-400">Potential Win:</span>
+                                <span class="text-accent font-semibold" id="potential-win-display">0 Points</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-400">Last 5 Multipliers:</span>
+                                <div class="flex space-x-2" id="last-multipliers" data-mock="true">
+                                    <span class="text-xs bg-surface-light px-2 py-1 rounded">2.34x</span>
+                                    <span class="text-xs bg-surface-light px-2 py-1 rounded">1.15x</span>
+                                    <span class="text-xs bg-surface-light px-2 py-1 rounded">5.67x</span>
+                                    <span class="text-xs bg-surface-light px-2 py-1 rounded">1.87x</span>
+                                    <span class="text-xs bg-surface-light px-2 py-1 rounded">3.21x</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Live Players -->
+                        <div class="mt-6">
+                            <h4 class="font-semibold mb-3">Live Players</h4>
+                            <div class="space-y-2 max-h-32 overflow-y-auto" data-mock="true">
+                                <!-- @MAP: livePlayers.map(player => ( -->
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-gray-400">Player123</span>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-white">50 pts</span>
+                                        <span class="text-accent">@ 1.45x</span>
+                                    </div>
+                                </div>
+                                <!-- @END_MAP )) -->
+                                
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-gray-400">GamerPro</span>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-white">100 pts</span>
+                                        <span class="text-red-400">Crashed</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-gray-400">LuckyWin</span>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-white">75 pts</span>
+                                        <span class="text-accent">@ 2.10x</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: Aviator Game View -->
+        
+    </main>
+    <!-- @END_COMPONENT: MainContent -->
+
+    <!-- @COMPONENT: FooterNavigation (Mobile) -->
+    <div class="fixed bottom-0 left-0 right-0 bg-surface border-t border-surface-light p-4 md:hidden z-40">
+        <div class="flex justify-around">
+            <button class="flex flex-col items-center text-gray-400 hover:text-white transition-colors" data-view="dashboard">
+                <i class="fas fa-home text-xl mb-1"></i>
+                <span class="text-xs">Home</span>
+            </button>
+            <button class="flex flex-col items-center text-gray-400 hover:text-white transition-colors" data-view="games">
+                <i class="fas fa-gamepad text-xl mb-1"></i>
+                <span class="text-xs">Games</span>
+            </button>
+            <button class="flex flex-col items-center text-gray-400 hover:text-white transition-colors" data-view="topup">
+                <i class="fas fa-wallet text-xl mb-1"></i>
+                <span class="text-xs">Top Up</span>
+            </button>
+            <button class="flex flex-col items-center text-gray-400 hover:text-white transition-colors">
+                <i class="fas fa-user text-xl mb-1"></i>
+                <span class="text-xs">Profile</span>
+            </button>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: FooterNavigation -->
+
+    <script>
+        (() => {
+            // TODO: Implement business logic, API calls, or state management
+            
+            // View Management
+            const viewButtons = document.querySelectorAll('[data-view]');
+            const viewSections = document.querySelectorAll('.view-section');
+            
+            function showView(viewName) {
+                viewSections.forEach(section => {
+                    section.classList.add('hidden');
+                });
+                
+                const targetView = document.getElementById(viewName + '-view');
+                if (targetView) {
+                    targetView.classList.remove('hidden');
+                    targetView.classList.add('slide-in');
+                }
+            }
+            
+            viewButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const viewName = button.getAttribute('data-view');
+                    showView(viewName);
+                });
+            });
+            
+            // Six-Color Game Logic
+            let selectedColors = new Set();
+            const colorButtons = document.querySelectorAll('.color-btn');
+            const selectedCountEl = document.getElementById('selected-count');
+            const entryPriceEl = document.getElementById('entry-price');
+            const potentialWinEl = document.getElementById('potential-win');
+            const playBtn = document.getElementById('play-btn');
+            const clearBtn = document.getElementById('clear-btn');
+            
+            const pricing = {
+                1: { entry: 20, win: 40 },
+                2: { entry: 30, win: 60 },
+                3: { entry: 45, win: 90 }
+            };
+            
+            function updateBetInfo() {
+                const count = selectedColors.size;
+                selectedCountEl.textContent = count;
+                
+                if (count > 0) {
+                    entryPriceEl.textContent = pricing[count].entry + ' Points';
+                    potentialWinEl.textContent = pricing[count].win + ' Points';
+                    playBtn.disabled = false;
+                } else {
+                    entryPriceEl.textContent = '0 Points';
+                    potentialWinEl.textContent = '0 Points';
+                    playBtn.disabled = true;
+                }
+            }
+            
+            colorButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const colorId = button.getAttribute('data-color');
+                    
+                    if (selectedColors.has(colorId)) {
+                        selectedColors.delete(colorId);
+                        button.classList.remove('color-selected');
+                    } else if (selectedColors.size < 3) {
+                        selectedColors.add(colorId);
+                        button.classList.add('color-selected');
+                    }
+                    
+                    updateBetInfo();
+                });
+            });
+            
+            clearBtn?.addEventListener('click', () => {
+                selectedColors.clear();
+                colorButtons.forEach(btn => btn.classList.remove('color-selected'));
+                updateBetInfo();
+            });
+            
+            playBtn?.addEventListener('click', () => {
+                if (selectedColors.size === 0) return;
+                
+                // Simulate game result
+                const winningColor = Math.floor(Math.random() * 6) + 1;
+                const isWin = selectedColors.has(winningColor.toString());
+                const count = selectedColors.size;
+                
+                // Show winning color
+                const winningColorEl = document.getElementById('winning-color');
+                winningColorEl.className = `w-20 h-20 rounded-full mx-auto shadow-lg game-color-${winningColor}`;
+                
+                // Show result message
+                const resultMessageEl = document.getElementById('result-message');
+                if (isWin) {
+                    resultMessageEl.textContent = `🎉 You Won ${pricing[count].win} Points!`;
+                    resultMessageEl.className = 'text-2xl font-bold mb-4 text-accent';
+                } else {
+                    resultMessageEl.textContent = `😔 You Lost ${pricing[count].entry} Points`;
+                    resultMessageEl.className = 'text-2xl font-bold mb-4 text-red-400';
+                }
+                
+                // Show results area
+                document.getElementById('results-area').classList.remove('hidden');
+                document.getElementById('results-area').classList.add('slide-in');
+                
+                // Hide play controls
+                playBtn.style.display = 'none';
+                clearBtn.style.display = 'none';
+                
+                // Update game status
+                document.getElementById('game-status').textContent = 'Round Complete';
+            });
+            
+            document.getElementById('play-again-btn')?.addEventListener('click', () => {
+                // Reset game
+                selectedColors.clear();
+                colorButtons.forEach(btn => btn.classList.remove('color-selected'));
+                updateBetInfo();
+                
+                // Hide results area
+                document.getElementById('results-area').classList.add('hidden');
+                
+                // Show play controls
+                playBtn.style.display = 'inline-flex';
+                clearBtn.style.display = 'inline-flex';
+                
+                // Update game status
+                document.getElementById('game-status').textContent = 'Select Colors';
+            });
+            
+            // Aviator Game Logic
+            let gameState = 'betting'; // betting, flying, crashed
+            let currentMultiplier = 1.00;
+            let betAmount = 0;
+            let isPlayerActive = false;
+            let gameInterval;
+            
+            const multiplierDisplay = document.getElementById('multiplier-display');
+            const aviatorStatus = document.getElementById('aviator-status');
+            const betBtn = document.getElementById('bet-btn');
+            const cashoutBtn = document.getElementById('cashout-btn');
+            const betAmountInput = document.getElementById('bet-amount');
+            const currentBetDisplay = document.getElementById('current-bet-display');
+            const potentialWinDisplay = document.getElementById('potential-win-display');
+            
+            function startAviatorRound() {
+                gameState = 'flying';
+                currentMultiplier = 1.00;
+                aviatorStatus.textContent = 'Plane is flying!';
+                
+                // Random crash point between 1.01 and 10.00
+                const crashPoint = 1.01 + Math.random() * 8.99;
+                
+                gameInterval = setInterval(() => {
+                    if (currentMultiplier >= crashPoint) {
+                        crashAviator();
+                        return;
+                    }
+                    
+                    currentMultiplier += 0.01;
+                    multiplierDisplay.querySelector('.multiplier-animation').textContent = currentMultiplier.toFixed(2) + 'x';
+                    
+                    if (isPlayerActive) {
+                        const potential = (betAmount * currentMultiplier).toFixed(0);
+                        potentialWinDisplay.textContent = potential + ' Points';
+                    }
+                    
+                    // Auto cashout check
+                    const autoCashout = parseFloat(document.getElementById('auto-cashout').value);
+                    if (autoCashout && currentMultiplier >= autoCashout && isPlayerActive) {
+                        cashOut();
+                    }
+                }, 100);
+                
+                // Start new round after crash
+                setTimeout(() => {
+                    if (gameState === 'crashed') {
+                        resetAviatorRound();
+                    }
+                }, 3000);
+            }
+            
+            function crashAviator() {
+                clearInterval(gameInterval);
+                gameState = 'crashed';
+                aviatorStatus.textContent = '💥 Plane crashed!';
+                
+                if (isPlayerActive) {
+                    aviatorStatus.textContent += ` You lost ${betAmount} points.`;
+                    isPlayerActive = false;
+                    resetBetControls();
+                }
+            }
+            
+            function cashOut() {
+                if (!isPlayerActive) return;
+                
+                const winnings = Math.floor(betAmount * currentMultiplier);
+                aviatorStatus.textContent = `🎉 Cashed out at ${currentMultiplier.toFixed(2)}x! Won ${winnings} points!`;
+                isPlayerActive = false;
+                resetBetControls();
+            }
+            
+            function resetAviatorRound() {
+                gameState = 'betting';
+                currentMultiplier = 1.00;
+                multiplierDisplay.querySelector('.multiplier-animation').textContent = '1.00x';
+                aviatorStatus.textContent = 'Place your bet!';
+                
+                // Start next round after 5 seconds
+                setTimeout(startAviatorRound, 5000);
+            }
+            
+            function resetBetControls() {
+                betBtn.classList.remove('hidden');
+                cashoutBtn.classList.add('hidden');
+                currentBetDisplay.textContent = '0 Points';
+                potentialWinDisplay.textContent = '0 Points';
+            }
+            
+            betBtn?.addEventListener('click', () => {
+                const amount = parseInt(betAmountInput.value);
+                if (amount < 10 || amount > 1000 || gameState !== 'betting') return;
+                
+                betAmount = amount;
+                isPlayerActive = true;
+                currentBetDisplay.textContent = amount + ' Points';
+                
+                betBtn.classList.add('hidden');
+                cashoutBtn.classList.remove('hidden');
+            });
+            
+            cashoutBtn?.addEventListener('click', cashOut);
+            
+            // Initialize aviator game
+            if (document.getElementById('multiplier-display')) {
+                setTimeout(startAviatorRound, 2000);
+            }
+            
+            // Show dashboard by default
+            showView('dashboard');
+        })();
+    </script>
+</body>
+</html>
