@@ -90,3 +90,8 @@ Preferred communication style: Simple, everyday language.
 - Added real-time player leaderboards with profit/loss tracking
 - Implemented responsive design with mobile-optimized layouts
 - Added neon visual effects and smooth animations for better user engagement
+- **OTP Authentication System**: Completely implemented password-less authentication supporting Gmail and phone numbers
+- **Dual Authentication Support**: System now supports both OTP (JWT tokens) and legacy Replit Auth
+- **Security Features**: Rate limiting, OTP expiry, attempt limits, and secure token management
+- **Development Setup**: +91 default country code, console logging for OTP codes during development
+- **UI Enhancement**: Casino-themed OTP login page with real-time validation and user feedback

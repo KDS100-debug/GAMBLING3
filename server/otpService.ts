@@ -58,7 +58,8 @@ export class OtpService {
     try {
       // For development, we'll just log to console
       // In production, integrate with SendGrid, AWS SES, etc.
-      console.log(`\n🔐 OTP EMAIL for ${email}: ${otp}\n`);
+      console.log(`\n🔐 EMAIL OTP for ${email}: ${otp}`);
+      console.log(`📧 Please check server logs above for your OTP code\n`);
       
       // Simulate email sending delay
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -75,7 +76,8 @@ export class OtpService {
     try {
       // For development, we'll just log to console
       // In production, integrate with Twilio, etc.
-      console.log(`\n📱 SMS OTP for ${phone}: ${otp}\n`);
+      console.log(`\n📱 SMS OTP for ${phone}: ${otp}`);
+      console.log(`📲 Please check server logs above for your OTP code\n`);
       
       // Simulate SMS sending delay
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -136,7 +138,7 @@ export class OtpService {
 
       return { 
         success: true, 
-        message: `OTP sent to your ${type === 'email' ? 'email' : 'phone'}. Valid for 2 minutes.` 
+        message: `OTP sent! Check server console logs for your ${type === 'email' ? 'email' : 'SMS'} code. Valid for 2 minutes.` 
       };
 
     } catch (error) {

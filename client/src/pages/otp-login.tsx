@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Mail, Phone, Lock, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import OtpInfoAlert from "@/components/otp-info-alert";
 
 interface SendOtpResponse {
   success: boolean;
@@ -133,10 +134,10 @@ export default function OtpLogin() {
     }
 
     // Validate phone format
-    if (authType === 'phone' && !identifier.startsWith('+')) {
+    if (authType === 'phone' && (!identifier.startsWith('+') || identifier.length < 10)) {
       toast({
         title: "Error",
-        description: "Please include country code (e.g., +1234567890)",
+        description: "Please enter a valid phone number with country code",
         variant: "destructive",
       });
       return;
@@ -191,6 +192,7 @@ export default function OtpLogin() {
           </CardHeader>
 
           <CardContent className="space-y-6">
+            <OtpInfoAlert />
             {step === "identifier" ? (
               <>
                 <Tabs value={authType} onValueChange={(value) => setAuthType(value as "email" | "phone")}>
@@ -232,17 +234,30 @@ export default function OtpLogin() {
                       <Input
                         id="phone"
                         type="tel"
-                        placeholder="+1234567890"
+                        placeholder="+919876543210"
                         value={identifier}
-                        onChange={(e) => setIdentifier(e.target.value)}
+                        onChange={(e) => {
+                          let value = e.target.value;
+                          // Auto-add +91 if user starts typing without country code
+                          if (value && !value.startsWith('+') && /^\d/.test(value)) {
+                            value = '+91' + value;
+                          }
+                          setIdentifier(value);
+                        }}
                         className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500"
                         onKeyDown={(e) => e.key === 'Enter' && handleSendOtp()}
+                        onFocus={(e) => {
+                          // Set default +91 if field is empty
+                          if (!identifier) {
+                            setIdentifier('+91');
+                          }
+                        }}
                       />
                     </div>
                     <Alert className="bg-green-900/50 border-green-500/50">
                       <Phone className="h-4 w-4 text-green-400" />
                       <AlertDescription className="text-green-200">
-                        Include country code (e.g., +1 for US). You'll receive a 6-digit code via SMS.
+                        +91 (India) is set by default. You'll receive a 6-digit code via SMS.
                       </AlertDescription>
                     </Alert>
                   </TabsContent>
