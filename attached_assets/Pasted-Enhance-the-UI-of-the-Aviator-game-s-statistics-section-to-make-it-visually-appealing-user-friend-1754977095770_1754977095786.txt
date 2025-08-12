@@ -1,0 +1,49 @@
+Enhance the UI of the “Aviator” game’s statistics section to make it visually appealing, user-friendly, and engaging, while still maintaining the game’s fast-paced betting vibe. The UI must:
+
+Overall Design Theme:
+
+Keep a sleek, modern, casino-inspired aesthetic with high contrast, dark background (deep navy/charcoal), and neon accents (lime green for profits, red for losses, gold for winnings, and soft white text for general info).
+
+Use rounded corners, subtle shadows, and smooth gradient overlays.
+
+Integrate minimal animations for player count updates and profit/loss changes (e.g., smooth number transitions or flashing effects when large wins occur).
+
+Real-Time Player Count Display:
+
+Show the total number of active players currently in the round at the top right of the section in bold text, with a small animated icon (e.g., multiple silhouettes or avatars).
+
+Update dynamically every 1–2 seconds without disrupting the flow.
+
+Player List Panel:
+
+Display a scrollable leaderboard-style list of current players with the following columns:
+
+Player Name/ID (use anonymized usernames like "Flyer_23" or profile icons).
+
+Current Bet (in currency format).
+
+Profit/Loss (positive values in neon green, negative in neon red).
+
+Highlight the top 3 winning players with gold, silver, and bronze accents.
+
+Allow real-time resorting based on profits, losses, or bets.
+
+Profit & Loss Summary Bar:
+
+Show total profit and total loss of all players for the current round in a visually balanced bar chart or horizontal meters below the player list.
+
+Profits section in gradient green, losses in gradient red.
+
+Include percentage change compared to the previous round.
+
+Responsive Layout:
+
+On desktop: Player list on the left, profit/loss chart on the right, total players count at the top corner.
+
+On mobile: Stacked view with collapsible sections for player list and summary chart.
+
+Optional Extra Feature:
+
+Add a small “Biggest Win of the Day” badge above the list, with a trophy icon and amount.
+
+Goal: Make the section more immersive, easy to scan quickly during gameplay, and encourage player engagement by showcasing live activity, top winners, and round performance. The design must feel dynamic but not overwhelming, balancing clarity with excitement.
