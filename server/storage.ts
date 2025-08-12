@@ -5,6 +5,8 @@ import {
   aviatorGameState,
   aviatorBets,
   otpCodes,
+  paymentRequests,
+  withdrawalRequests,
   type User,
   type UpsertUser,
   type InsertTransaction,
@@ -19,7 +21,7 @@ import {
   type OtpCode,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (supports both Replit Auth and OTP Auth)
@@ -215,6 +217,102 @@ export class DatabaseStorage implements IStorage {
       .where(eq(aviatorBets.userId, userId))
       .orderBy(desc(aviatorBets.createdAt))
       .limit(limit);
+  }
+
+  // Admin and Payment System Methods
+  async updateUserUpiId(userId: string, upiId: string): Promise<void> {
+    await db.update(users)
+      .set({ upiId })
+      .where(eq(users.id, userId));
+  }
+
+  async createPaymentRequest(data: any): Promise<any> {
+    const [result] = await db.insert(paymentRequests).values(data).returning();
+    return result;
+  }
+
+  async getUserPaymentRequests(userId: string): Promise<any[]> {
+    return db.select()
+      .from(paymentRequests)
+      .where(eq(paymentRequests.userId, userId))
+      .orderBy(desc(paymentRequests.createdAt));
+  }
+
+  async createWithdrawalRequest(data: any): Promise<any> {
+    const [result] = await db.insert(withdrawalRequests).values(data).returning();
+    return result;
+  }
+
+  async getUserWithdrawalRequests(userId: string): Promise<any[]> {
+    return db.select()
+      .from(withdrawalRequests)
+      .where(eq(withdrawalRequests.userId, userId))
+      .orderBy(desc(withdrawalRequests.createdAt));
+  }
+
+  async getAdminDashboardStats(): Promise<any> {
+    const [totalPaymentsResult] = await db.select({
+      total: sql<string>`COALESCE(SUM(amount), 0)`
+    }).from(paymentRequests).where(eq(paymentRequests.status, 'approved'));
+
+    const [totalWithdrawalsResult] = await db.select({
+      total: sql<string>`COALESCE(SUM(withdrawal_amount), 0)`
+    }).from(withdrawalRequests).where(eq(withdrawalRequests.status, 'completed'));
+
+    const [pendingPaymentsResult] = await db.select({
+      count: sql<string>`COUNT(*)`
+    }).from(paymentRequests).where(eq(paymentRequests.status, 'pending'));
+
+    const [activeUsersResult] = await db.select({
+      count: sql<string>`COUNT(*)`
+    }).from(users);
+
+    return {
+      totalPayments: totalPaymentsResult?.total || 0,
+      totalWithdrawals: totalWithdrawalsResult?.total || 0,
+      pendingPayments: pendingPaymentsResult?.count || 0,
+      activeUsers: activeUsersResult?.count || 0,
+    };
+  }
+
+  async getPendingPayments(): Promise<any[]> {
+    return db.select()
+      .from(paymentRequests)
+      .where(eq(paymentRequests.status, 'pending'))
+      .orderBy(desc(paymentRequests.createdAt));
+  }
+
+  async approvePayment(paymentId: string, adminId: string): Promise<any> {
+    const [result] = await db.update(paymentRequests)
+      .set({ 
+        status: 'approved',
+        approvedBy: adminId,
+        approvedAt: new Date()
+      })
+      .where(eq(paymentRequests.id, paymentId))
+      .returning();
+    
+    return result;
+  }
+
+  async getPendingWithdrawals(): Promise<any[]> {
+    return db.select()
+      .from(withdrawalRequests)
+      .where(eq(withdrawalRequests.status, 'pending'))
+      .orderBy(desc(withdrawalRequests.createdAt));
+  }
+
+  async completeWithdrawal(withdrawalId: string, adminId: string): Promise<any> {
+    const [result] = await db.update(withdrawalRequests)
+      .set({
+        status: 'completed',
+        processedBy: adminId,
+        processedAt: new Date()
+      })
+      .where(eq(withdrawalRequests.id, withdrawalId))
+      .returning();
+
+    return result;
   }
 }
 

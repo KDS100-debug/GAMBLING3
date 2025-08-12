@@ -1,0 +1,91 @@
+Build an Admin System to manage game payments and points with the following features and flow:
+
+1. Payment System Integration
+
+Inside the game, display a unique QR code for payments.
+
+When a player pays to that QR code, the system will send a real-time notification to the admin panel.
+
+The notification should include:
+
+Player ID
+
+Amount Paid
+
+Payment Transaction ID
+
+UPI/Bank Account details of the payer
+
+UPI ID should be stored during the player’s first top-up so it can be used later for withdrawals.
+
+2. Points Calculation & Approval
+
+The admin panel will display each incoming payment as a new record in a Pending Payments list.
+
+The system will automatically calculate points based on the paid amount using a predefined conversion rate (configurable by admin).
+
+Each record will have an "Approve" button.
+
+When the admin clicks the button, the corresponding points will be credited to the player’s account in the game.
+
+3. Withdrawal Management
+
+Players can request to withdraw points.
+
+Withdrawal requests will appear in the Pending Withdrawals list on the admin panel.
+
+The system will convert the requested points into the withdrawal amount using the same or a different conversion rate (configurable).
+
+The admin will see:
+
+Player ID
+
+UPI ID (stored from first top-up)
+
+Points to be withdrawn
+
+Calculated amount to pay
+
+The admin will then manually transfer the amount to the player’s UPI and click the "Paid" button to mark it as completed.
+
+4. Admin Panel Requirements
+
+Dashboard showing total payments, total withdrawals, pending approvals, and pending withdrawals.
+
+Secure login for admin.
+
+Search & filter options for players and transactions.
+
+Transaction history for each player.
+
+Configurable settings:
+
+Point conversion rate for top-up
+
+Point-to-cash conversion rate for withdrawal
+
+QR code image upload
+
+5. Tech Requirements
+
+Backend: Node.js + Express / Django / Laravel (choose one)
+
+Database: MySQL / PostgreSQL
+
+Payment Notification: Integrate with UPI payment gateway (e.g., Razorpay, Paytm, PhonePe APIs)
+
+Real-time updates: Use WebSockets or server-sent events for instant admin notifications.
+
+Security:
+
+Validate all payments via payment gateway API before approving.
+
+Store UPI IDs securely with encryption.
+
+6. Flow Summary:
+
+Player scans QR → Pays → Payment Gateway → Admin Notification → Admin Approves → Points Added
+
+Player Requests Withdrawal → Admin Sees Request + UPI ID → Admin Pays → Marks as Completed
+
+The system should be responsive and mobile-friendly for admins to manage payments from anywhere.

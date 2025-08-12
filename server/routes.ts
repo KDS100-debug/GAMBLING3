@@ -763,6 +763,245 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }, 3000);
   }
 
+  // Admin authentication middleware
+  const isAdminAuthenticated = (req: any, res: any, next: any) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'Admin token required' });
+    }
+    
+    // Simple JWT verification (in production, use proper JWT library)
+    try {
+      // For demo purposes, using simple token validation
+      if (token === 'admin-demo-token') {
+        req.admin = { id: 'admin1', username: 'admin' };
+        next();
+      } else {
+        res.status(401).json({ message: 'Invalid admin token' });
+      }
+    } catch (error) {
+      res.status(401).json({ message: 'Invalid admin token' });
+    }
+  };
+
+  // Payment System Routes
+  app.get('/api/payment/qr-code', async (req, res) => {
+    try {
+      // Return default QR code info for UPI payment
+      return res.json({
+        merchantUpiId: 'ashishalamkabir@idfc',
+        qrCodeImage: null,
+        qrCodeData: 'upi://pay?pa=ashishalamkabir@idfc&pn=GameHub&cu=INR'
+      });
+    } catch (error) {
+      console.error('Error fetching QR code:', error);
+      res.status(500).json({ message: 'Failed to fetch QR code' });
+    }
+  });
+
+  app.post('/api/payment/create-request', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { amount, upiId, pointsToCredit } = req.body;
+
+      if (!amount || amount < 10 || amount > 50000) {
+        return res.status(400).json({ message: 'Invalid amount' });
+      }
+
+      if (!upiId) {
+        return res.status(400).json({ message: 'UPI ID is required' });
+      }
+
+      // Store user's UPI ID for future withdrawals
+      await storage.updateUserUpiId(userId, upiId);
+
+      // Create payment request
+      const paymentRequest = await storage.createPaymentRequest({
+        userId,
+        amount: amount.toString(),
+        pointsToCredit,
+        paymentMethod: 'upi',
+        payerUpiId: upiId,
+        status: 'pending',
+      });
+
+      res.json({ success: true, paymentRequest });
+    } catch (error) {
+      console.error('Error creating payment request:', error);
+      res.status(500).json({ message: 'Failed to create payment request' });
+    }
+  });
+
+  app.get('/api/payment/requests', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const requests = await storage.getUserPaymentRequests(userId);
+      res.json(requests);
+    } catch (error) {
+      console.error('Error fetching payment requests:', error);
+      res.status(500).json({ message: 'Failed to fetch payment requests' });
+    }
+  });
+
+  // Withdrawal Routes
+  app.post('/api/withdrawal/create-request', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { pointsToWithdraw, upiId, withdrawalAmount } = req.body;
+
+      if (!pointsToWithdraw || pointsToWithdraw < 10) {
+        return res.status(400).json({ message: 'Minimum withdrawal is 10 points' });
+      }
+
+      if (!upiId) {
+        return res.status(400).json({ message: 'UPI ID is required' });
+      }
+
+      // Check user balance
+      const user = await storage.getUser(userId);
+      if (!user || (user.balance || 0) < pointsToWithdraw) {
+        return res.status(400).json({ message: 'Insufficient balance' });
+      }
+
+      // Create withdrawal request
+      const withdrawalRequest = await storage.createWithdrawalRequest({
+        userId,
+        pointsToWithdraw,
+        withdrawalAmount: withdrawalAmount.toString(),
+        recipientUpiId: upiId,
+        status: 'pending',
+      });
+
+      // Deduct points temporarily (will be restored if rejected)
+      await storage.updateUserBalance(userId, (user.balance || 0) - pointsToWithdraw);
+
+      res.json({ success: true, withdrawalRequest });
+    } catch (error) {
+      console.error('Error creating withdrawal request:', error);
+      res.status(500).json({ message: 'Failed to create withdrawal request' });
+    }
+  });
+
+  app.get('/api/withdrawal/requests', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const requests = await storage.getUserWithdrawalRequests(userId);
+      res.json(requests);
+    } catch (error) {
+      console.error('Error fetching withdrawal requests:', error);
+      res.status(500).json({ message: 'Failed to fetch withdrawal requests' });
+    }
+  });
+
+  // Admin Routes
+  app.post('/api/admin/login', async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      // Simple demo authentication (use proper auth in production)
+      if (username === 'admin' && password === 'admin123') {
+        res.json({ 
+          success: true, 
+          token: 'admin-demo-token',
+          user: { username: 'admin', role: 'admin' }
+        });
+      } else {
+        res.status(401).json({ message: 'Invalid credentials' });
+      }
+    } catch (error) {
+      console.error('Admin login error:', error);
+      res.status(500).json({ message: 'Login failed' });
+    }
+  });
+
+  app.get('/api/admin/dashboard/stats', isAdminAuthenticated, async (req, res) => {
+    try {
+      const stats = await storage.getAdminDashboardStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching admin stats:', error);
+      res.status(500).json({ message: 'Failed to fetch stats' });
+    }
+  });
+
+  app.get('/api/admin/payments/pending', isAdminAuthenticated, async (req, res) => {
+    try {
+      const pendingPayments = await storage.getPendingPayments();
+      res.json(pendingPayments);
+    } catch (error) {
+      console.error('Error fetching pending payments:', error);
+      res.status(500).json({ message: 'Failed to fetch pending payments' });
+    }
+  });
+
+  app.post('/api/admin/payments/:id/approve', isAdminAuthenticated, async (req: any, res) => {
+    try {
+      const paymentId = req.params.id;
+      const adminId = req.admin.id;
+
+      const payment = await storage.approvePayment(paymentId, adminId);
+      if (!payment) {
+        return res.status(404).json({ message: 'Payment not found' });
+      }
+
+      // Credit points to user
+      const user = await storage.getUser(payment.userId);
+      if (user) {
+        const newBalance = (user.balance || 0) + payment.pointsToCredit;
+        await storage.updateUserBalance(payment.userId, newBalance);
+      }
+
+      res.json({ success: true, payment });
+    } catch (error) {
+      console.error('Error approving payment:', error);
+      res.status(500).json({ message: 'Failed to approve payment' });
+    }
+  });
+
+  app.get('/api/admin/withdrawals/pending', isAdminAuthenticated, async (req, res) => {
+    try {
+      const pendingWithdrawals = await storage.getPendingWithdrawals();
+      res.json(pendingWithdrawals);
+    } catch (error) {
+      console.error('Error fetching pending withdrawals:', error);
+      res.status(500).json({ message: 'Failed to fetch pending withdrawals' });
+    }
+  });
+
+  app.post('/api/admin/withdrawals/:id/complete', isAdminAuthenticated, async (req: any, res) => {
+    try {
+      const withdrawalId = req.params.id;
+      const adminId = req.admin.id;
+
+      const withdrawal = await storage.completeWithdrawal(withdrawalId, adminId);
+      if (!withdrawal) {
+        return res.status(404).json({ message: 'Withdrawal not found' });
+      }
+
+      res.json({ success: true, withdrawal });
+    } catch (error) {
+      console.error('Error completing withdrawal:', error);
+      res.status(500).json({ message: 'Failed to complete withdrawal' });
+    }
+  });
+
+  app.get('/api/admin/config/:key', isAdminAuthenticated, async (req, res) => {
+    try {
+      const { key } = req.params;
+      
+      // Default values
+      const defaults: { [key: string]: any } = {
+        'topup-rate': { rate: 10 }, // 10 points per ₹1
+        'withdrawal-rate': { rate: 0.08 }, // ₹0.08 per point
+      };
+
+      res.json(defaults[key] || { value: null });
+    } catch (error) {
+      console.error('Error fetching config:', error);
+      res.status(500).json({ message: 'Failed to fetch config' });
+    }
+  });
+
   // Start first aviator round immediately
   console.log('Starting Aviator game engine...');
   startAviatorRound();

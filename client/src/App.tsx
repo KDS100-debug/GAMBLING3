@@ -28,6 +28,10 @@ function Router() {
           <Route path="/topup" component={TopUp} />
           <Route path="/color-game" component={ColorGame} />
           <Route path="/aviator-game" component={AviatorGame} />
+          <Route path="/payment-topup" component={() => import("./pages/payment-topup")} />
+          <Route path="/withdrawal" component={() => import("./pages/withdrawal")} />
+          <Route path="/admin/login" component={() => import("./pages/admin-login")} />
+          <Route path="/admin/dashboard" component={() => import("./pages/admin-dashboard")} />
         </>
       )}
       <Route component={NotFound} />

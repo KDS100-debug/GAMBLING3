@@ -25,7 +25,8 @@ export default function Navigation() {
   const navItems = [
     { href: "/", icon: HomeIcon, label: "Dashboard" },
     { href: "/games", icon: GamepadIcon, label: "Games" },
-    { href: "/topup", icon: WalletIcon, label: "Top Up" },
+    { href: "/payment-topup", icon: WalletIcon, label: "Top Up" },
+    { href: "/withdrawal", icon: CoinsIcon, label: "Withdraw" },
   ];
 
   const isActive = (href: string) => {

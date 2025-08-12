@@ -10,6 +10,7 @@ import {
   boolean,
   text
 } from "drizzle-orm/pg-core";
+import { desc } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -35,6 +36,7 @@ export const users = pgTable("users", {
   balance: integer("balance").default(0),
   totalWinnings: integer("total_winnings").default(0),
   gamesPlayed: integer("games_played").default(0),
+  upiId: varchar("upi_id"), // Store user's UPI ID for withdrawals
   lastLoginAt: timestamp("last_login_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -104,6 +106,68 @@ export const aviatorBets = pgTable("aviator_bets", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Admin users for system management
+export const adminUsers = pgTable("admin_users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username").unique().notNull(),
+  email: varchar("email").unique().notNull(),
+  passwordHash: varchar("password_hash").notNull(),
+  role: varchar("role").default('admin'), // 'admin', 'super_admin'
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Payment requests for top-ups
+export const paymentRequests = pgTable("payment_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  pointsToCredit: integer("points_to_credit").notNull(),
+  paymentMethod: varchar("payment_method").notNull(), // 'upi', 'bank_transfer', 'card'
+  paymentTransactionId: varchar("payment_transaction_id"),
+  payerUpiId: varchar("payer_upi_id"),
+  payerBankDetails: jsonb("payer_bank_details"),
+  status: varchar("status").default('pending'), // 'pending', 'approved', 'rejected'
+  qrCodeId: varchar("qr_code_id"),
+  approvedBy: varchar("approved_by").references(() => adminUsers.id),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Withdrawal requests
+export const withdrawalRequests = pgTable("withdrawal_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  pointsToWithdraw: integer("points_to_withdraw").notNull(),
+  withdrawalAmount: decimal("withdrawal_amount", { precision: 10, scale: 2 }).notNull(),
+  recipientUpiId: varchar("recipient_upi_id").notNull(),
+  status: varchar("status").default('pending'), // 'pending', 'processing', 'completed', 'rejected'
+  processedBy: varchar("processed_by").references(() => adminUsers.id),
+  processedAt: timestamp("processed_at"),
+  rejectionReason: text("rejection_reason"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// QR codes for payments
+export const paymentQrCodes = pgTable("payment_qr_codes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  qrCodeData: text("qr_code_data").notNull(),
+  qrCodeImage: text("qr_code_image"), // Base64 or URL
+  merchantUpiId: varchar("merchant_upi_id").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// System configuration
+export const systemConfig = pgTable("system_config", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  configKey: varchar("config_key").unique().notNull(),
+  configValue: text("config_value").notNull(),
+  description: text("description"),
+  updatedBy: varchar("updated_by").references(() => adminUsers.id),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type InsertOtpCode = typeof otpCodes.$inferInsert;
@@ -116,6 +180,18 @@ export type InsertAviatorGameState = typeof aviatorGameState.$inferInsert;
 export type AviatorGameState = typeof aviatorGameState.$inferSelect;
 export type InsertAviatorBet = typeof aviatorBets.$inferInsert;
 export type AviatorBet = typeof aviatorBets.$inferSelect;
+
+// Admin system types
+export type AdminUser = typeof adminUsers.$inferSelect;
+export type InsertAdminUser = typeof adminUsers.$inferInsert;
+export type PaymentRequest = typeof paymentRequests.$inferSelect;
+export type InsertPaymentRequest = typeof paymentRequests.$inferInsert;
+export type WithdrawalRequest = typeof withdrawalRequests.$inferSelect;
+export type InsertWithdrawalRequest = typeof withdrawalRequests.$inferInsert;
+export type PaymentQrCode = typeof paymentQrCodes.$inferSelect;
+export type InsertPaymentQrCode = typeof paymentQrCodes.$inferInsert;
+export type SystemConfig = typeof systemConfig.$inferSelect;
+export type InsertSystemConfig = typeof systemConfig.$inferInsert;
 
 export const insertTransactionSchema = createInsertSchema(transactions).omit({
   id: true,
