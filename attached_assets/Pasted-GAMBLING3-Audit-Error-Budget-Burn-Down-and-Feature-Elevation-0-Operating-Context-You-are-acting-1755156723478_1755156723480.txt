@@ -1,0 +1,264 @@
+GAMBLING3: Audit, Error Budget Burn-Down, and Feature Elevation
+0) Operating Context
+
+You are acting as a Staff-plus Full-Stack Engineer and Security Champion executing a rapid reliability uplift and feature acceleration on the repository KDS100-debug/GAMBLING3. The codebase presents:
+
+Monorepo layout with client/, server/, shared/, plus TypeScript toolchain (tsconfig.json), Vite bundling (vite.config.ts), Tailwind (tailwind.config.ts, postcss.config.js), and Drizzle config (drizzle.config.ts). Replit files suggest ephemeral hosting considerations. 
+GitHub
+
+Deliverables must be PR-ready, lint-clean, and backed by tests. Optimize for security, correctness, and maintainability while enabling fast feature throughput.
+
+1) Objectives (North Stars)
+
+Stabilize: Triage and remediate compile/runtime defects; reduce error budget to near-zero.
+
+Secure: Implement robust authZ/authN, input validation, rate limiting, secret hygiene, and RNG integrity.
+
+Harden Data Layer: Normalize schema, add migrations, ensure transactional safety, and enforce Drizzle types end-to-end.
+
+UX Lift: Ship a friction-less, accessible, mobile-first UI with clear states and resilient error handling.
+
+Operate: Land CI/CD, unit/integration/e2e tests, structured logging, and observability hooks.
+
+2) Discovery & Audit Playbook (Run in Order)
+
+A. Inventory & Health
+
+Enumerate all packages and versions from root package.json and any nested manifests; flag deprecated or vulnerable dependencies; propose pinned versions and upgrade path.
+
+Build locally and capture compiler diagnostics. Generate a defect ledger with file, line, stack, repro steps, and proposed fix.
+
+B. Architecture & Contracts
+
+Map client ↔ server ↔ shared contracts. Identify any type drift between API DTOs, Drizzle models, and UI types. Propose a single source of truth (Zod/TypeBox or Drizzle schema emit).
+
+C. Security Posture
+
+Secrets: Verify .env usage; replace any hardcoded secrets; implement runtime checks that fail fast if required envs are missing.
+
+Auth: If auth exists, document flows; if absent, implement email/password + JWT (short-lived access, rotating refresh) with RBAC scaffolding.
+
+Abuse controls: Add express-rate-limit/equivalent, CORS policy, helmet headers, CSRF defenses as applicable.
+
+RNG/Fairness: Centralize cryptographically secure RNG (crypto.getRandomValues client-side only for display; server-side origin of truth using Node crypto.randomInt), log seeds and outcomes for auditability.
+
+D. Data Layer & Drizzle
+
+Validate drizzle.config.ts; ensure migrations are present and reproducible. Add idempotent seed scripts.
+
+Add unique indexes, foreign keys, and constraints for integrity. Wrap critical writes in transactions.
+
+E. Observability & QA
+
+Add structured logging (pino/winston) with request IDs and redact PII. Wire health/readiness probes.
+
+Testing: Jest/Vitest unit tests, Supertest API integration, Playwright/Cypress e2e. Minimum 70% coverage gate.
+
+3) Defect Remediation (High-Leverage Fixes)
+
+Address the following classes immediately, providing diffs and rationale:
+
+Type Unsafety
+
+Replace any/implicit any with exact types across shared/.
+
+Introduce Zod schemas for all API payloads; validate at server boundaries before business logic.
+
+Async/await Correctness
+
+Eliminate unhandled promises; enforce eslint-plugin-promise; wrap routes with centralized error middleware.
+
+Env & Config Hygiene
+
+Introduce a config.ts that parses process.env via Zod with defaults and hard fails on missing keys.
+
+Remove any secrets from source; document .env.example.
+
+Security Headers & CORS
+
+Add helmet, strict referrer-policy, X-Content-Type-Options, Content-Security-Policy tailored to Vite asset paths.
+
+Lock CORS to known origins (dev, prod).
+
+Input Validation & Rate Limits
+
+Per-route validation + 429 responses on abuse.
+
+Add brute-force protection for auth endpoints.
+
+Database Correctness
+
+Normalize schema; add NOT NULL where appropriate; index high-cardinality lookups; guard against race conditions with transactions.
+
+RNG & Game Integrity
+
+Server-side RNG with cryptographic primitives; store hash commitments for “provably fair” mode; expose a verification endpoint.
+
+4) Feature Elevation (Value Creation)
+
+Authentication & RBAC
+
+JWT access+refresh, rotation, revoke list; roles: user, admin, auditor.
+
+Session heartbeat and silent refresh on the client.
+
+Responsible Gaming Toolkit
+
+Daily/weekly limits, cooldown timers, self-exclusion flags, reality checks (session time banners).
+
+Server-enforced—not just UI.
+
+Wallet & Ledger (Points-based)
+
+Double-entry ledger for credits/debits; immutable audit trail; idempotent transaction endpoints.
+
+Game Flow Hardening
+
+Atomic bet placement → outcome resolution → payout pipeline with exactly-once semantics.
+
+Retry/backoff patterns and deduplication keys.
+
+UI/UX
+
+Empty/loading/error states; optimistic UI for safe actions; responsive layout via Tailwind; WCAG AA contrast checks.
+
+i18n & Theming
+
+React-i18next (or equivalent) scaffold; light/dark themes with system preference sync.
+
+Admin Console
+
+Feature flags, user search, wallet adjustments (role-gated), fraud signals, and export CSV.
+
+5) Testing Strategy (Shift-Left)
+
+Unit: Business rules, RNG wrapper, schema validators.
+
+Integration: API routes with an ephemeral DB (Dockerized Postgres/SQLite), migrations applied per test run.
+
+e2e: Playwright flows—signup → login → deposit (points) → place bet → cashout.
+
+Security: ZAP/Burp passive scan in CI, dependency audit (npm audit, pnpm audit, or yarn npm audit).
+
+6) CI/CD and Tooling
+
+CI: GitHub Actions—matrix for Node LTS; jobs: install → typecheck → lint → test → build → audit.
+
+Quality Gates: ESLint + Prettier + TypeCheck mandatory; coverage ≥ 70% required for merge.
+
+Drizzle Migrations: Auto-run on deploy with safe guard; rollbacks scripted.
+
+Runtime: Dockerfile with multi-stage build; health checks; env-only configuration.
+
+Releases: Semantic-release for automated versioning and changelogs.
+
+7) Acceptance Criteria (Definition of Done)
+
+Build is green locally and in CI.
+
+No P0/P1 vulnerabilities (Snyk/GitHub Advisories).
+
+All endpoints schema-validated; 4xx/5xx are structured and documented.
+
+Database migrations reproducible; seed script deterministic.
+
+Observability in place: request IDs, error correlation, health/readiness endpoints.
+
+README updated with Getting Started, .env.example, scripts, and runbooks.
+
+8) Concrete Task Breakdown (Create Issues/PRs with these)
+
+Repo Hygiene
+
+Add .nvmrc, .editorconfig, .env.example, SECURITY.md, and CODEOWNERS.
+
+Introduce root scripts:
+
+lint, format, typecheck, test, test:watch, build, dev.
+
+Type & Validation Backbone
+
+Install zod, zod-to-json-schema, eslint, @typescript-eslint/*, eslint-plugin-import, eslint-plugin-security.
+
+Build shared/schemas/*.ts; generate types; enforce on server routes and client fetchers.
+
+Server Hardening
+
+Add helmet, cors, express-rate-limit, centralized error middleware, request logging (pino-http).
+
+Implement /healthz, /readyz.
+
+RNG service with crypto.randomInt; commit-reveal optional fairness endpoint.
+
+Drizzle & DB
+
+Define normalized tables for users, sessions, wallets, ledger, bets, games, transactions.
+
+Create migrations; add composite indexes; integrate transactions in business flows.
+
+AuthN/Z
+
+JWT access/refresh with rotation; password hashing (argon2id); forgot/reset; email verification stub; RBAC guards.
+
+Client Enhancements
+
+API client with typed fetch; global error boundary; Toasts for UX feedback; loading skeletons; A11y checks.
+
+State management (Zustand/Redux) only if needed—prefer React Query for server state with stale-while-revalidate.
+
+Testing
+
+Vitest/Jest config; Supertest for API; Playwright for core funnels; coverage reporting.
+
+CI/CD
+
+GitHub Actions workflow yaml; cache node_modules; artifact uploads; audit step; conditional deploy.
+
+9) Sample Commands & Scaffolding (Author These in PRs)
+# Lint/format/type
+npm run lint && npm run format && npm run typecheck
+
+# Drizzle
+npm run db:generate && npm run db:migrate && npm run db:seed
+
+# Tests
+npm run test
+npm run e2e  # Playwright
+
+# Start
+npm run dev  # Local dev with concurrently for client/server
+npm run build && npm run start
+
+10) Documentation & Runbooks
+
+Update README.md with:
+
+Stack diagram, env variables table, local/dev/prod commands, migration playbook, troubleshooting matrix.
+
+Add RUNBOOK.md for on-call (error classes, log fields, common remediations).
+
+Add CONTRIBUTING.md with branch strategy and commit conventions.
+
+11) Risk & Compliance Guardrails
+
+Enforce age gating and KYC placeholders if required by jurisdiction; implement responsible gaming controls server-side.
+
+Log redaction for PII; rotate keys; limit data retention windows.
+
+Add a feature flag for any gameplay affecting odds; ship disabled by default.
+
+12) Success Metrics (Instrument Post-Merge)
+
+Crash-free sessions ≥ 99.5%
+
+P95 API latency < 300ms on core endpoints
+
+Test coverage ≥ 70%; escaped defects P1+ = 0 over first two sprints
+
+Security scan: 0 Critical/High
+
+Execution Notes
+
+Produce small, composable PRs with before/after screenshots and perf/security notes.
+
+Attach a change-risk matrix (low/med/high) per PR to streamline approvals.
