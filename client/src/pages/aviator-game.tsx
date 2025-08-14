@@ -51,11 +51,11 @@ export default function AviatorGame() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: balanceData } = useQuery({
+  const { data: balanceData } = useQuery<{balance: number}>({
     queryKey: ['/api/balance'],
   });
 
-  const { sendMessage } = useWebSocket('/ws', {
+  const { sendMessage } = useWebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`, {
     onMessage: (data) => {
       switch (data.type) {
         case 'game_state':
@@ -138,7 +138,7 @@ export default function AviatorGame() {
           setLastMultipliers(prev => [data.data.multiplier, ...prev.slice(0, 4)]);
           
           if (userBet && userBet.status === 'active') {
-            setUserBet(prev => ({ ...prev, status: 'crashed' }));
+            setUserBet((prev: any) => ({ ...prev, status: 'crashed' }));
             toast({
               title: "Round Ended",
               description: `Plane crashed at ${data.data.multiplier.toFixed(2)}x`,
@@ -164,7 +164,7 @@ export default function AviatorGame() {
           break;
         case 'cashed_out':
           if (data.data.userId === 'user') {
-            setUserBet(prev => ({
+            setUserBet((prev: any) => ({
               ...prev,
               status: 'cashed_out',
               winAmount: data.data.winAmount,

@@ -18,39 +18,56 @@ export function useWebSocket(url: string, options: UseWebSocketOptions = {}) {
   }, []);
 
   useEffect(() => {
-    try {
-      ws.current = new WebSocket(url);
+    let reconnectTimeout: NodeJS.Timeout;
 
-      ws.current.onopen = () => {
-        console.log('WebSocket connected');
-        onOpen?.();
-      };
+    const connect = () => {
+      try {
+        ws.current = new WebSocket(url);
 
-      ws.current.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          onMessage?.(data);
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
-        }
-      };
+        ws.current.onopen = () => {
+          console.log('WebSocket connected');
+          onOpen?.();
+        };
 
-      ws.current.onclose = () => {
-        console.log('WebSocket disconnected');
-        onClose?.();
-      };
+        ws.current.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            onMessage?.(data);
+          } catch (error) {
+            console.error('Error parsing WebSocket message:', error);
+          }
+        };
 
-      ws.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        onError?.(error);
-      };
-    } catch (error) {
-      console.error('Error creating WebSocket:', error);
-    }
+        ws.current.onclose = (event) => {
+          console.log('WebSocket disconnected');
+          onClose?.();
+          
+          // Only attempt to reconnect if it wasn't a manual close
+          if (event.code !== 1000) {
+            reconnectTimeout = setTimeout(() => {
+              console.log('Attempting to reconnect WebSocket...');
+              connect();
+            }, 3000);
+          }
+        };
+
+        ws.current.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          onError?.(error);
+        };
+      } catch (error) {
+        console.error('Error creating WebSocket:', error);
+      }
+    };
+
+    connect();
 
     return () => {
-      if (ws.current) {
-        ws.current.close();
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+        ws.current.close(1000, 'Component unmounted');
       }
     };
   }, [url, onMessage, onOpen, onClose, onError]);
