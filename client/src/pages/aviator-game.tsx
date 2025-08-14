@@ -206,13 +206,16 @@ export default function AviatorGame() {
   // Mutations for game actions
   const placeBetMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/aviator/bet', {
+      return await fetch('/api/aviator/bet', {
         method: 'POST',
-        body: {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           betAmount,
           autoCashOut: autoCashOut ? parseFloat(autoCashOut) : null,
-        },
-      });
+        }),
+      }).then(res => res.json());
     },
     onSuccess: () => {
       // Success handled by WebSocket
@@ -239,13 +242,16 @@ export default function AviatorGame() {
 
   const placeNextBetMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/aviator/next-bet', {
+      return await fetch('/api/aviator/next-bet', {
         method: 'POST',
-        body: {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           betAmount,
           autoCashOut: autoCashOut ? parseFloat(autoCashOut) : null,
-        },
-      });
+        }),
+      }).then(res => res.json());
     },
     onSuccess: () => {
       // Success handled by WebSocket
@@ -272,9 +278,12 @@ export default function AviatorGame() {
 
   const cashOutMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/aviator/cash-out', {
+      return await fetch('/api/aviator/cash-out', {
         method: 'POST',
-      });
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }).then(res => res.json());
     },
     onSuccess: () => {
       // Success handled by WebSocket
