@@ -11,6 +11,10 @@ import TopUp from "@/pages/topup";
 import ColorGame from "@/pages/color-game";
 import AviatorGame from "@/pages/aviator-game";
 import OtpLogin from "@/pages/otp-login";
+import PaymentTopup from "@/pages/payment-topup";
+import Withdrawal from "@/pages/withdrawal";
+import AdminLogin from "@/pages/admin-login";
+import AdminDashboard from "@/pages/admin-dashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -28,10 +32,10 @@ function Router() {
           <Route path="/topup" component={TopUp} />
           <Route path="/color-game" component={ColorGame} />
           <Route path="/aviator-game" component={AviatorGame} />
-          <Route path="/payment-topup" component={() => import("./pages/payment-topup")} />
-          <Route path="/withdrawal" component={() => import("./pages/withdrawal")} />
-          <Route path="/admin/login" component={() => import("./pages/admin-login")} />
-          <Route path="/admin/dashboard" component={() => import("./pages/admin-dashboard")} />
+          <Route path="/payment-topup" component={PaymentTopup} />
+          <Route path="/withdrawal" component={Withdrawal} />
+          <Route path="/admin/login" component={AdminLogin} />
+          <Route path="/admin/dashboard" component={AdminDashboard} />
         </>
       )}
       <Route component={NotFound} />
